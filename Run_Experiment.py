@@ -4,7 +4,11 @@ from BLG.Universal_Constants import *
 from BLG.BLG_Constants import *
 from BLG.BandStructure import *
 
+
 CBLG = e0 / a0
+
+
+
 
 def setup_experiment(d1_set,d2_set, e1_set, e2_set, T_set, Wtip_set):
 	'''Sets the variables of tunneling experiment:
@@ -49,14 +53,23 @@ def generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100):
 	Broadcasts in batches of 10.'''
 
 	# Load values of vplus and vminus to search over
-	vplus = dm.get_vplus(T)
-	vplus = vplus.reshape(1,len(vplus),1,1)
-	vminus = dm.get_vminus(T)
-	vminus = vminus.reshape(len(vminus),1,1,1)
 
-	# load the carrier densities
-	nplus_array = dm.get_nplus(T)
-	nminus_array = dm.get_nminus(T)
+	vplus = dm.get_vplus(T)
+	vplus = vplus.reshape(1,len(vplus),1,1).astype('float32')
+	vminus = dm.get_vminus(T)
+	vminus = vminus.reshape(len(vminus),1,1,1).astype('float32')
+
+	# b refers to 'batch size'
+	# We loop over the range of tip and gate voltages
+	# and broadcast in batches to avoid memory errors
+	b = 5
+
+	# load the carrier densities from their files
+	nplus_array = dm.get_nplus(T).astype('float32')
+	nminus_array = dm.get_nminus(T).astype('float32')
+
+	nplus_array = nplus_array[:,:,np.newaxis,np.newaxis]
+	nminus_array = nminus_array[:,:,np.newaxis,np.newaxis]
 
 	# Choose tip and backgate voltages
 	num_vts = int(100 * num_vts_100) # number of points for VT
@@ -64,33 +77,34 @@ def generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100):
 
 	# Create array of Tip and Backgate voltages
 	VT = np.linspace(VTrange[0],VTrange[1],num=num_vts)
-	VT = VT.reshape(1,1,num_vts,1)
+	VT = VT.reshape(1,1,num_vts,1).astype('float32')
 	VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs)
-	VB = VB.reshape(1,1,1,num_vbs)
+	VB = VB.reshape(1,1,1,num_vbs).astype('float32')
 
 	# Arrays where we will load the solutions
 	vplus0 = np.zeros((num_vts,num_vbs))
 	vminus0 = np.zeros((num_vts,num_vbs))
 
-	# b refers to 'batch size'
-	# We loop over the range of tip and gate voltages
-	# and broadcast in batches to avoid memory errors
-	b = 10
-
 	for i in range(int(num_vts/b)):
 	    for j in range(int(num_vbs/b)):
 
-	    	# 
 	        VGplus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]+VB[:,:,:,b*j:b*j+b])
 	        VGminus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]-VB[:,:,:,b*j:b*j+b])
+
+	        print(i,j)
+	        print('VGplus: ', VGplus.dtype,np.shape(VGplus))
+	        print('VGminus: ', VGminus.dtype,np.shape(VGminus))
+	        print('nplus_array: ', nplus_array.dtype,round(nplus_array.nbytes*10**-6),np.shape(nplus_array))
+	        print('nminus_array: ', nminus_array.dtype,round(nminus_array.nbytes*10**-6),np.shape(nminus_array))
 
 	        # Generate the intersecting planes for each pair of voltages
 	        plane_minus_array = planeminus(vplus, vminus,VGplus,VGminus)
 	        plane_plus_array  = planeplus(vplus,vminus,VGplus,VGminus)
 
-	        # Generate the electrostatic equations
-	        f1 = plane_plus_array - (-q)*nplus_array[:,:,np.newaxis,np.newaxis]
-	        f2 = plane_minus_array - (-q)*nminus_array[:,:,np.newaxis,np.newaxis]
+	        ### GOOD UNTIL HERE ###
+			# Generate the electrostatic equations
+	        f1 = plane_plus_array - (-q)*nplus_array
+	        f2 = plane_minus_array - (-q)*nminus_array
 
 	        # Find the magnitudes
 	        F = f1**2+f2**2
@@ -110,7 +124,7 @@ def generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100):
 	        vplus0[b*i:b*i+b,b*j:b*j+b] = vplus[:,Fmins_args[:,:,1].flatten('C')].squeeze().reshape(b,b)
 	        vminus0[b*i:b*i+b,b*j:b*j+b] = vminus[Fmins_args[:,:,0].flatten('C')].squeeze().reshape(b,b)
 
-	return (vplus0, vminus0)
+	# return (vplus0, vminus0)
 
 
 #########################################
