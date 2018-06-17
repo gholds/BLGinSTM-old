@@ -10,6 +10,6 @@ num_vts_100 = 0.1 # 100 points
 VBmin, VBmax = -45, 45
 num_vbs_100 = 0.5 # 10 points
 
-I = re.generate_vplus_vminus([VTmin,VTmax], num_vts_100, [VBmin,VBmax], num_vbs_100)
+I = re.generate_tunnelcurrent([VTmin,VTmax], num_vts_100, [VBmin,VBmax], num_vbs_100)
 
 print(I)
