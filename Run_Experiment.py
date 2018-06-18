@@ -144,7 +144,7 @@ def y(a,b,x0):
     return I
 
 def Y(ea,eb,u,VT):
-    emin0 = emin(u) + (eVtoJ*10**-7)
+    emin0 = emin(u)
     prefactor = emin0*np.sqrt(g1**2+u**2)
     
     phibar = Wtip - (q/2)*VT
@@ -167,6 +167,8 @@ def Y(ea,eb,u,VT):
 def Integral(ea,eb,u,VT,d):
     '''Returns the form of the integral in the mexican hat domain (d=1) or the outer domain (d=2).
     Does not include factor of 1/pi*(hbar*vF)^2.'''
+    if u == 0:
+        return 
     if d==1:
         return 2*Y(ea,eb,u,VT)
     if d==2:
@@ -191,6 +193,9 @@ def tunnelcurrent(vplus,vminus,VT):
 
     # Calculate the parameters we need
     phibar = Wtip - (q/2)*VT
+    print(Wtip, VT)
+    print(q)
+    print(phibar)
     kappa0 = np.sqrt(2*m*phibar)/hbar
     
     # Extra prefactor that came from the variable change
@@ -201,6 +206,11 @@ def tunnelcurrent(vplus,vminus,VT):
     ea = min(eF,eF-q*VT)
     eb = max(eF,eF-q*VT)
 
+    # If u==0, DOS is a constant
+    if u == 0:
+        dos = 2 * g1 / (pi * (hbar*vF)**2 )
+        integrand = lambda x: np.exp(kappa0 * x * d1 / (2*phibar))
+        return dos * integrate.quad(integrand, ea, eb)[0]
     integrals = [0,0,0,0]
 
 
