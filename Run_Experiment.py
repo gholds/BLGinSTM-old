@@ -193,9 +193,7 @@ def tunnelcurrent(vplus,vminus,VT):
 
     # Calculate the parameters we need
     phibar = Wtip - (q/2)*VT
-    print(Wtip, VT)
-    print(q)
-    print(phibar)
+
     kappa0 = np.sqrt(2*m*phibar)/hbar
     
     # Extra prefactor that came from the variable change
