@@ -20,7 +20,7 @@ def Dispersion(k,u,band):
     radical=(g1**4)/4 + (u**2 + g1**2)*(p**2)
     return np.sqrt( (g1**2)/2 + (u**2)/4 + p**2 + ((-1)**(band))*np.sqrt(radical) )
 
-def kmin(u):
+def kmin(u, band=1):
     '''Returns positive wavenumber at the minimum of the first band in 1/m'''
     k2 = ( u**2 / (2*hbar*vF)**2 ) * ( (2*g1**2 + u**2) /( g1**2 + u**2 ) )
     return np.sqrt(k2)
@@ -269,34 +269,3 @@ def nminus(vplus,vminus, T,points=10000):
     integrand =  ( 2 / np.pi ) * ks * Pdiff(ks,vminus) * FD
 
     return np.squeeze(integrate.trapz(integrand,ks,axis=0))
-
-
-#########################
-### OBSOLETE VERSIONS ###
-#########################
-# def nplus(vplus,vminus, T):
-#     '''Returns the electron carrier density for various electrostatic potentials vplus, vminus.
-#     Convention is that electrons have positive carrier density while holes have negative.'''
-
-#     # Domain over first Brillouin zone
-#     ks = np.linspace(0,1/(np.sqrt(3)*a), num=100000)
-
-#     # Define integrand
-#     integrand =  ( 2 / np.pi ) * ks * (FermiDirac(Dispersion(ks,2*q*vminus,1)-q*vplus,T)-FermiDirac(Dispersion(ks,2*q*vminus,1)+q*vplus,T))
-
-#     return integrate.trapz(integrand,ks)
-
-
-
-# def nminus(vplus,vminus, T):
-#     '''Returns the electron carrier density for various electrostatic potentials vplus.
-#     Convention is that electrons have positive carrier density while holes have negative.'''
-
-#     # Domain over first Brillouin zone
-#     ks = np.linspace(0,1/(np.sqrt(3)*a), num=100000)
-#     # Define integrand
-#     integrand =  ( 2 / np.pi ) * ks * Pdiff(ks,vminus) * (FermiDirac(Dispersion(ks,2*q*vminus,1)-q*vplus,T)+FermiDirac(Dispersion(ks,2*q*vminus,1)+q*vplus,T))
-
-#     return integrate.trapz(integrand,ks)
-
-

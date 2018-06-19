@@ -9,5 +9,3 @@ vF=3*a*g0/(2*hbar) # m/s, Fermi velocity
 
 g1 = 0.358*eVtoJ # J, A1-A2 hopping
 a0 = 3*10**(-10) # m, distance between graphene layers
-
-randomnumber = 444
