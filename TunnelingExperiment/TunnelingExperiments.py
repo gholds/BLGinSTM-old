@@ -92,7 +92,7 @@ class BLGinSTM:
             
             for j in range(int(num_vbs/b)):
                 j_frac = ( j / int(num_vbs/b) ) * (1/int(num_vts/b))
-                print('{} % finished'.format( 100*(i_frac+j_frac) ) )
+                print('{} % finished'.format( round(100*(i_frac+j_frac)) ), end='\r' )
                 VGplus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]+VB[:,:,:,b*j:b*j+b])
                 VGminus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]-VB[:,:,:,b*j:b*j+b])
 
@@ -100,13 +100,12 @@ class BLGinSTM:
                 plane_minus_array = self.planeminus(vplus, vminus,VGplus,VGminus)
                 plane_plus_array  = self.planeplus(vplus,vminus,VGplus,VGminus)
 
-                ### GOOD UNTIL HERE ###
                 # Generate the electrostatic equations
                 f1 = plane_plus_array - (-q)*nplus_array
                 f2 = plane_minus_array - (-q)*nminus_array
 
                 # Find the magnitudes
-                F = f1**2+f2**2
+                F = f1**2 + f2**2
 
                 # Minimum for each pair of voltages
                 Fmins = np.min(F,axis=(0,1))
@@ -123,10 +122,11 @@ class BLGinSTM:
                 vplus0[b*i:b*i+b,b*j:b*j+b] = vplus[:,Fmins_args[:,:,1].flatten('C')].squeeze().reshape(b,b)
                 vminus0[b*i:b*i+b,b*j:b*j+b] = vminus[Fmins_args[:,:,0].flatten('C')].squeeze().reshape(b,b)
 
+        print('100 % Finished')
         return (vplus0, vminus0)
 
-    
-    def tunnelcurrent(vplus,vminus,VT):
+
+    def tunnelcurrent(self,vplus,vminus,VT):
         '''Returns tunnel current.'''
         if VT==0: return 0
 
@@ -134,28 +134,46 @@ class BLGinSTM:
         u = -2*q*vminus
 
         # Estimate prefactor C
-        C = (4*pi*q / hbar) * 1 * Ac *1
+        C = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
 
         # Calculate the parameters we need
-        phibar = Wtip - (q/2)*VT
+        phibar = self.Wtip - (q/2)*VT
 
         kappa0 = np.sqrt(2*m*phibar)/hbar
         
         # Extra prefactor that came from the variable change
-        C = C* np.exp(kappa0*d1*(-eF+q*VT)/(2*phibar))
+        C = C* np.exp(kappa0*self.d1*(-eF+q*VT)/(2*phibar))
         
         # Calculate the domain of integration
         # Integrate in a positive direction, then change the sign later if needed
         ea = min(eF,eF-q*VT)
         eb = max(eF,eF-q*VT)
 
-        integrand = lambda x : DOS(x,u) * np.exp(x*kappa0*d1/(2*phibar))
+        integrand = lambda x : self.BLG.DOS(x,u) * np.exp(x*kappa0*self.d1/(2*phibar))
 
         # Points which are divergences or discontinuities
-        points = np.array([u/2, -u/2, emin(u), -emin(u)])
+        points = np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u)])
 
         points = points[(ea<points) & (points<eb)]
         sign = np.sign(VT)
         return np.sign(VT) * C * integrate.quad(integrand,ea,eb,points=points)[0]
         ( pi * hbar**2 * vF**2 )
 
+    def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100):
+        '''Generates the tunnel current over range of VTrange, VBrange 
+        (lists of length 2 [min,max]. Number of point * 100.'''
+
+        # First get equilibrium values of voltages
+        vplus0, vminus0 = self.generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100)
+
+        # Then generate an array of the tip voltages
+        VT = np.linspace(VTrange[0],VTrange[1],num=int(100*num_vts_100))
+        tc = np.empty(np.shape(vplus0))
+
+        print('Computing tunnelcurrents')
+        for i in range(np.shape(tc)[0]):
+            print('{:.2}\% finished'.format( 100* i / int(np.shape(tc)[0])))
+            for j in range(np.shape(tc)[1]):
+                tc[i,j] = self.tunnelcurrent(vplus0[i,j],vminus0[i,j],VT[i])
+
+        return tc

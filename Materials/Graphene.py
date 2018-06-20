@@ -388,7 +388,11 @@ class Bilayer(BaseGraphene):
         nminus_surface = np.empty(np.shape(vminus*vplus))
 
         for i in range(int(len(vplus)/d)):
+            i_frac = i / int(len(vplus)/d)
             for j in range(int(len(vminus)/d)):
+                j_frac  = (j / int(len(vminus)/d)) * (1 / int(len(vplus)/d))
+                percentage = round(100* (i_frac + j_frac),2)
+                print('{} % Finished'.format(percentage))
                 nplus_surface[d*j:d*j+d,d*i:d*i+d]=self.nplus(vplus[d*i:d*i+d],vminus[d*j:d*j+d,:],T)
                 nminus_surface[d*j:d*j+d,d*i:d*i+d]=self.nminus(vplus[d*i:d*i+d],vminus[d*j:d*j+d,:],T)
 
