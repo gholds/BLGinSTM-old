@@ -124,3 +124,38 @@ class BLGinSTM:
                 vminus0[b*i:b*i+b,b*j:b*j+b] = vminus[Fmins_args[:,:,0].flatten('C')].squeeze().reshape(b,b)
 
         return (vplus0, vminus0)
+
+    
+    def tunnelcurrent(vplus,vminus,VT):
+        '''Returns tunnel current.'''
+        if VT==0: return 0
+
+        eF = q*vplus
+        u = -2*q*vminus
+
+        # Estimate prefactor C
+        C = (4*pi*q / hbar) * 1 * Ac *1
+
+        # Calculate the parameters we need
+        phibar = Wtip - (q/2)*VT
+
+        kappa0 = np.sqrt(2*m*phibar)/hbar
+        
+        # Extra prefactor that came from the variable change
+        C = C* np.exp(kappa0*d1*(-eF+q*VT)/(2*phibar))
+        
+        # Calculate the domain of integration
+        # Integrate in a positive direction, then change the sign later if needed
+        ea = min(eF,eF-q*VT)
+        eb = max(eF,eF-q*VT)
+
+        integrand = lambda x : DOS(x,u) * np.exp(x*kappa0*d1/(2*phibar))
+
+        # Points which are divergences or discontinuities
+        points = np.array([u/2, -u/2, emin(u), -emin(u)])
+
+        points = points[(ea<points) & (points<eb)]
+        sign = np.sign(VT)
+        return np.sign(VT) * C * integrate.quad(integrand,ea,eb,points=points)[0]
+        ( pi * hbar**2 * vF**2 )
+
