@@ -432,6 +432,6 @@ class Bilayer(BaseGraphene):
                                 'CarrierDensities',
                                 'Temp_{:.2E}'.format(T))
         nminus_surface = np.load(save_dir+'nminus_surface.npy')
-        nminus_surface = np.concatenate((nminus_surface[:0:-1,:],nminus_surface))
-        nminus_surface = np.concatenate((-nminus_surface[:,:0:-1],nminus_surface),axis = 1)
+        nminus_surface = np.concatenate((-nminus_surface[:0:-1,:],nminus_surface))
+        nminus_surface = np.concatenate((nminus_surface[:,:0:-1],nminus_surface),axis = 1)
         return nminus_surface
