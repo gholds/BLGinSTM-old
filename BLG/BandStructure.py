@@ -228,7 +228,7 @@ def nplus(vplus,vminus, T, points = 10000):
 
     vplus = vplus.reshape(1,1,len(vplus))
     vminus = vminus.reshape(1,len(vminus),1)
-
+    
     # Domain over first Brillouin zone
     ks = np.linspace(0,1/(np.sqrt(3)*a), num=points).reshape((points,1,1))
 

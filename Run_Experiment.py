@@ -9,9 +9,6 @@ import os
 
 CBLG = e0 / a0
 
-
-
-
 def setup_experiment(d1_set,d2_set, e1_set, e2_set, T_set, Wtip_set):
     '''Sets the variables of tunneling experiment:
     d1 : Tip-Sample distance in nm

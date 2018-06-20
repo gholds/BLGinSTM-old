@@ -3,6 +3,8 @@ import numpy as np
 from BLG.BandStructure import nplus, nminus, nplusT0
 from BLG.BLG_Constants import q
 
+# Code here has been added to Materials/Graphene.py
+
 def generate_nplus_nminus(T):
 	''' Generates and stores the nplus and nminus surfaces at
 	Temperature T'''

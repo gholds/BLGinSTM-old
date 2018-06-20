@@ -36,11 +36,14 @@ class Bilayer(BaseGraphene):
 
     """
 
-    g1  = 0.358*eVtoJ # (J), A1-B1 hopping potential of BLG
-    g3  = 0.3 * eVtoJ # (J), A1-B2 hopping potential of BLG
-    d   = 3*(10**-10) # (m), interlayer spacing of BLG
+    g1  = 0.358 * eVtoJ # (J), A1-B1 hopping potential
+    g3  = 0.3   * eVtoJ # (J), A1-B2 hopping potential
+    g4  = 0.12  * eVtoJ # (J), A1-A2 hopping potential (McCann Koshino 2013)
+    d   = 3*(10**-10)   # (m), interlayer spacing
     approx_choices = ['None', 'g3=0', 'LowEnergy', 'Quadratic']
+    C = e0 / d
 
+    this_dir = os.path.dirname(os.path.realpath(__file__))
 
     def Hamiltonian(self,k,u):
         '''
@@ -53,11 +56,32 @@ class Bilayer(BaseGraphene):
 
         u:  Interlayer potential energy difference (J).
         '''
-        H = np.array([  [-u/2, hbar*self.vF*k,0,3*self.g3*self.a*k],
-                [hbar*self.vF*k, -u/2, self.g1, 0   ],
-                [0, self.g1, u/2, hbar*self.vF],
-                [3*self.g3*self.a*k, 0, hbar*self.vF*k,0]])
+        k = np.atleast_1d(k)
+        length = np.shape(k)[0]
+        ones = np.ones(length)
+
+        # Diagonals
+        H11 = H22 = -u/2 * ones
+        H33 = H44 =  u/2 * ones
+
+        # Intralayer
+        H12 = H21 = H34 = H43 = hbar * self.vF * k
+
+        # Interlayer A1-B2
+        H23 = H32 = self.g1 * ones
+
+        # Trigonal Warping
+        H14 = H41 = 3 * self.g3 * self.a * k
+
+        # g4
+        H13 = H31 = H42 = H24 = - (3/4)**(1/2) * self.a * self.g4 * k
+
+        H = np.array([  [H11, H12, H13, H14],
+                        [H21, H22, H23, H24],
+                        [H31, H32, H33, H34],
+                        [H41, H42, H43,H44]]).squeeze()
         return H
+
     ######################
     ### Band Structure ###
     ######################
@@ -83,19 +107,20 @@ class Bilayer(BaseGraphene):
 
             '''
 
-            meff = ( self.g1 / (2 * (self.vF)**2) )**-1
-            return np.sqrt( (u/2)**2 + ( (hbar * k)**2 / 2*meff )**2 )
+            meff = ( self.g1 / (2 * (self.vF)**2) )
+            return np.sqrt( (u/2)**2 + ( (hbar * k)**2 / (2*meff) )**2 )
 
         if approx == 'None':
             '''
             No approximation. Compute eigenvalues of Hamiltonian
             '''
 
-            H = np.array([  [-u/2, hbar*self.vF*k,0,3*self.g3*self.a*k],
-                            [hbar*self.vF*k, -u/2, self.g1, 0   ],
-                            [0, self.g1, u/2, hbar*self.vF],
-                            [3*self.g3*self.a*k, 0, hbar*self.vF*k,0]])
-            return np.abs(linalg.eigvalsh(H)).min()
+            disp = np.empty(np.shape(k))
+
+            for i, wn in enumerate(k):
+                disp[i] = linalg.eigvalsh(self.Hamiltonian(wn,u))[1+band]
+
+            return disp
 
     def kmin(u, band=1):
         '''
@@ -154,7 +179,6 @@ class Bilayer(BaseGraphene):
 
         if approx=='LowEnergy':
             meff = ( self.g1 / (2 * (self.vF)**2) )
-            print(meff)
             denominator_squared = ( ( (hbar*k)**2/meff )**2 + u**2 )
             
             return - u / np.sqrt(denominator_squared)
@@ -229,6 +253,7 @@ class Bilayer(BaseGraphene):
 
             return prop * (kFp2 - kFm2)
 
+
         if approx == 'LowEnergy':
             """
             See Young and Levitov 2011.
@@ -239,6 +264,26 @@ class Bilayer(BaseGraphene):
 
             energy_diff = (np.abs(eF)>np.abs(u/2)) * (eF**2 - (u/2)**2)
             return (nu0/q) * np.sign(eF) * np.sqrt(energy_diff)
+
+    def nminusT0(self,vplus,vminus,approx='LowEnergy'):
+
+        if approx == 'LowEnergy':
+            meff = ( self.g1 / (2 * (self.vF)**2) )
+            nu0 = 2 * meff * q  / (pi * hbar**2)
+
+            prop = nu0 * vminus
+            
+            # Find cutoff energy. Approximate it as the vminus=0 case
+            Lambda = self.Dispersion( 1 / (np.sqrt(3) * self.a), -2*q*vminus, 1 ) / q
+            
+            # Compute the denominator of the log
+            metal = abs(vplus) >= abs(vminus)
+            den = (metal) * np.abs(vplus) + np.sqrt( metal * vplus**2 + (-1)**metal * vminus**2 ) 
+            
+            return prop * np.log(2 * Lambda / den)
+
+        else:
+            print('Invalid Approximation')
 
     def nplus(self,vplus,vminus, T, approx='g3=0',points = 10000):
         '''
@@ -289,8 +334,104 @@ class Bilayer(BaseGraphene):
         # Minus sign comes from...
         FD = (self.FermiDirac(KE-q*vplus,T)-self.FermiDirac(-KE-q*vplus,T))
 
-
         # Define integrand
         integrand =  ( 2 / np.pi ) * ks * self.Pdiff(ks,vminus,approx) * FD
 
         return np.squeeze(integrate.trapz(integrand,ks,axis=0))
+
+    def generate_nplus_nminus(self,vplus,vminus,T):
+        """
+        Generates and saves high-resolution surfaces of nplus(vplus,vminus)
+        and nminus(vplus,vminus). Only generate for first quadrant (vplus,vminus > 0)
+        since surfaces have symmetry properties.
+        """
+        save_dir = os.path.join(self.this_dir,
+                                'CarrierDensities',
+                                'Temp_{:.2E}'.format(T))
+
+        if os.path.exists(save_dir):
+            print('Carrier densities for T = {} K have already been generated'.format(T))
+            return
+        #else:
+        #    os.makedirs(save_dir)
+
+        if np.any(vplus< 0) or np.any(vminus<0):
+            print('Some voltages were negative in the ranges\n')
+            print(  vplus[0].squeeze(),
+                    ' < vplus < ',
+                    vplus[-1].squeeze(),
+                    ' {} points'.format(np.shape(vplus)[0]))
+            print(  vminus[0].squeeze(),
+                    ' < vminus < ', vminus[-1].squeeze(),
+                    ' {} points'.format(np.shape(vminus)[0]))
+
+            vplus   = np.linspace(0,vplus[-1],num=np.shape(vplus)[0])
+            vminus  = np.linspace(0,vminus[-1],num=np.shape(vminus)[0]).reshape(np.shape(vminus))
+
+            print('\nInstead, generating over the ranges\n')
+            print(  '0 < vplus < ', vplus[-1].squeeze(),
+                    ' {} points'.format(np.shape(vplus)[0]))
+            print(  '0 < vminus< ', vminus[-1].squeeze(),
+                    ' {} points'.format(np.shape(vminus)[0]))
+            print()
+
+        # Choose the size of the batches we will generate
+        d = 10
+
+        # Check that it is compatible with the lengths of vplus and vminus
+        if len(vplus) % d != 0 or len(vminus) % d != 0:
+            print('Batch size (d) incompatible with voltage arrays')
+            print('d= {} does not evenly divide either len(vplus)= {} or len(vminus) = {}'.format(d,len(vplus),len(vminus)))
+            return
+
+        nplus_surface = np.empty(np.shape(vminus*vplus))
+        nminus_surface = np.empty(np.shape(vminus*vplus))
+
+        for i in range(int(len(vplus)/d)):
+            for j in range(int(len(vminus)/d)):
+                nplus_surface[d*j:d*j+d,d*i:d*i+d]=self.nplus(vplus[d*i:d*i+d],vminus[d*j:d*j+d,:],T)
+                nminus_surface[d*j:d*j+d,d*i:d*i+d]=self.nminus(vplus[d*i:d*i+d],vminus[d*j:d*j+d,:],T)
+
+        # Save the surfaces
+        np.save(save_dir+'nplus_surface.npy',nplus_surface)
+        np.save(save_dir+'nminus_surface.npy',nminus_surface)
+
+        # Save the voltages
+        np.save(save_dir+'vplus.npy', vplus)
+        np.save(save_dir+'vminus.npy', vminus)
+
+    def get_vplus(self,T):
+        """
+        Returns the vplus array saved in ...
+        Doubles the range to negative values
+        """
+        save_dir = os.path.join(self.this_dir,
+                                'CarrierDensities',
+                                'Temp_{:.2E}'.format(T))
+        vplus = np.load(save_dir+'vplus.npy')
+        return np.concatenate((-vplus[:0:-1],vplus))
+
+    def get_vminus(self,T):
+        save_dir = os.path.join(self.this_dir,
+                                'CarrierDensities',
+                                'Temp_{:.2E}'.format(T))
+        vminus = np.load(save_dir+'vminus.npy')
+        return np.concatenate((-vminus[:0:-1],vminus))
+
+    def get_nplus(self,T):
+        save_dir = os.path.join(self.this_dir,
+                                'CarrierDensities',
+                                'Temp_{:.2E}'.format(T))
+        nplus_surface = np.load(save_dir+'nplus_surface.npy')
+        nplus_surface = np.concatenate((nplus_surface[:0:-1,:],nplus_surface))
+        nplus_surface = np.concatenate((-nplus_surface[:,:0:-1],nplus_surface),axis = 1)
+        return nplus_surface
+
+    def get_nminus(self,T):
+        save_dir = os.path.join(self.this_dir,
+                                'CarrierDensities',
+                                'Temp_{:.2E}'.format(T))
+        nminus_surface = np.load(save_dir+'nminus_surface.npy')
+        nminus_surface = np.concatenate((nminus_surface[:0:-1,:],nminus_surface))
+        nminus_surface = np.concatenate((-nminus_surface[:,:0:-1],nminus_surface),axis = 1)
+        return nminus_surface

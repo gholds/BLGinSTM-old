@@ -1,26 +1,24 @@
 from Materials import Graphene
+from TunnelingExperiment import TunnelingExperiments
 
 import numpy as np
-from BLG.Universal_Constants import eVtoJ
-
-blg = Graphene.Bilayer()
-
-vplus = np.linspace(0,0.4,num=100)
-vminus = 0.005 
-
-nplus_g30 = blg.nplus(vplus,vminus,0)
-nplus_lowe = blg.nplus(vplus,vminus,0,approx='LowEnergy')
-
-nminus_g30 = blg.nminus(vplus,vminus,0)
-nminus_lowe = blg.nminus(vplus,vminus,0,approx='LowEnergy')
-
+from scipy import integrate
 import matplotlib.pyplot as plt
 
-plt.plot(vplus,nplus_g30, label = 'nplus g3=0')
-plt.plot(vplus,nplus_lowe, label = 'nplus, LowEnergy')
+d1 	= 1
+d2 	= 305
+e1 	= 1
+e2 	= 3.9
+T 	= 0
+Wtip= 5
 
-plt.plot(vplus,nminus_g30, label = 'nminus g3=0')
-plt.plot(vplus,nminus_lowe, label = 'nminus Low E')
+stm = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
-plt.legend()
-plt.show()
+
+VTrange = [-0.2,0.2]
+num_vts_100 = 0.1
+
+VBrange = [-30,30]
+num_vbs_100 = 0.1
+
+print(stm.generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100))
