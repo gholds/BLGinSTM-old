@@ -179,7 +179,7 @@ def Integral(ea,eb,u,VT,d):
     else:
         return 0
 
-def tunnelcurrent(vplus,vminus,VT):
+def tunnelcurrent_obsolete(vplus,vminus,VT):
     '''Returns tunnel current.'''
     if VT==0: return 0
     eF = q*vplus
@@ -228,9 +228,10 @@ def tunnelcurrent(vplus,vminus,VT):
     return np.sign(VT) * np.sum(integrals) / (pi*hbar**2*vF**2)
 
 
-def tunnelcurrent2(vplus,vminus,VT):
+def tunnelcurrent(vplus,vminus,VT):
     '''Returns tunnel current.'''
     if VT==0: return 0
+
     eF = q*vplus
     u = -2*q*vminus
 
@@ -256,8 +257,6 @@ def tunnelcurrent2(vplus,vminus,VT):
     points = np.array([u/2, -u/2, emin(u), -emin(u)])
 
     points = points[(ea<points) & (points<eb)]
-
-    print(points)
     sign = np.sign(VT)
     return np.sign(VT) * C * integrate.quad(integrand,ea,eb,points=points)[0]
     ( pi * hbar**2 * vF**2 )
