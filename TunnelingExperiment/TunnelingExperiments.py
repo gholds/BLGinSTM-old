@@ -125,7 +125,7 @@ class BLGinSTM:
         return (vplus0, vminus0)
 
 
-    def tunnelcurrent(self,vplus,vminus,VT):
+    def tunnelcurrent(self,vplus,vminus,VT,T):
         '''Returns tunnel current.'''
         if VT==0: return 0
 
@@ -133,30 +133,28 @@ class BLGinSTM:
         u = -2*q*vminus
 
         # Estimate prefactor C
-        C = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
+        C0 = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
 
         # Calculate the parameters we need
         phibar = self.Wtip - (q/2)*VT
 
         kappa0 = np.sqrt(2*m*phibar)/hbar
         
-        # Extra prefactor that came from the variable change
-        C = C* np.exp(kappa0*self.d1*(-eF+q*VT)/(2*phibar))
-        
         # Calculate the domain of integration
         # Integrate in a positive direction, then change the sign later if needed
-        ea = min(eF,eF-q*VT)
-        eb = max(eF,eF-q*VT)
+        ea = min(eF,eF+q*VT)
+        eb = max(eF,eF+q*VT)
 
-        integrand = lambda x : self.BLG.DOS(x,u) * np.exp(x*kappa0*self.d1/(2*phibar))
+        fermidirac = lambda x : Temperature.FermiDirac(x-q*VT,T) - Temperature.FermiDirac(x,T)
+        integrand2 = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x-0.5*q*VT)*kappa0*self.d1/(2*phibar))
 
         # Points which are divergences or discontinuities
         points = np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u)])
-
+        # Select only those in the domain of integration
         points = points[(ea<points) & (points<eb)]
-        sign = np.sign(VT)
-        return np.sign(VT) * C * integrate.quad(integrand,ea,eb,points=points)[0]
-        ( pi * hbar**2 * vF**2 )
+
+        tc = C0 * np.sign(VT) * integrate.quad(integrand2,0,q*VT,points=points)[0]
+        return tc
 
     def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100):
         '''Generates the tunnel current over range of VTrange, VBrange 

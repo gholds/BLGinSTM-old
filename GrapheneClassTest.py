@@ -1,8 +1,8 @@
 from Materials import Graphene
 from TunnelingExperiment import TunnelingExperiments
 
-#import numpy as np
-#import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 BLG = Graphene.Bilayer()
@@ -13,6 +13,7 @@ T = 0
 Wtip = 5
 
 stm = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
+
 
 # Ks = np.linspace(0,10**9,num=100)
 # vminus = 0.05

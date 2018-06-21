@@ -5,3 +5,5 @@ Bilayer graphene (BLG) is of great technological interest due to its dynamic ban
 <img src=images/BandStructure/GatedBLG.png width="800">
 
 This package uses a parallel plate capacitor model to analyze bilayer graphene in tunneling measurements. It is applicable even to STM measurements since the radius of curvature of an STM tip is much larger than its distance from the surface. The package includes methods for calculating common quantities associated with solid state systems (band structure, density of states, etc.) as well as methods for analyzing the signal of bilayer graphene in a solid state system.
+
+A series of Jupyter notebooks is (will be) available for a tutorial. 
