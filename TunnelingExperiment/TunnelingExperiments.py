@@ -1,5 +1,4 @@
-from . import *
-from Materials import Graphene
+from . import * # Packages imported in __init__.py
 
 class BLGinSTM:
 

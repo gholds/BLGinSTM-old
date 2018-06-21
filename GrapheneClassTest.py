@@ -7,7 +7,12 @@ from TunnelingExperiment import TunnelingExperiments
 
 BLG = Graphene.Bilayer()
 
-print(BLG.nminus(0.1,0.05,0))
+d1, d2 = 1, 305
+e1, e2 = 1, 3.9
+T = 0
+Wtip = 5
+
+stm = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
 # Ks = np.linspace(0,10**9,num=100)
 # vminus = 0.05
