@@ -7,12 +7,18 @@ import matplotlib.pyplot as plt
 
 BLG = Graphene.Bilayer()
 
-d1, d2 = 1, 305
-e1, e2 = 1, 3.9
-T = 0
-Wtip = 5
+k = np.array([10**8,5*10**8])
+print(BLG.Hamiltonian(k,0)[:,:,1])
 
-stm = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
+print(BLG.Hamiltonian(k[1],0))
+
+
+# d1, d2 = 1, 305
+# e1, e2 = 1, 3.9
+# T = 0
+# Wtip = 5
+
+# stm = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
 
 # Ks = np.linspace(0,10**9,num=100)

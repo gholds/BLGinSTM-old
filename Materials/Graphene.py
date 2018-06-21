@@ -17,15 +17,15 @@ class BaseGraphene:
 
 class Bilayer(BaseGraphene):
     """
-    Bilayer graphene
-
+    Bilayer graphene class which inherits the parameters of the
+    BaseGraphene class.
     """
 
     g1  = 0.358 * eVtoJ # (J), A1-B1 hopping potential
     g3  = 0.3   * eVtoJ # (J), A1-B2 hopping potential
     g4  = 0.12  * eVtoJ # (J), A1-A2 hopping potential (McCann Koshino 2013)
     d   = 3*(10**-10)   # (m), interlayer spacing
-    approx_choices = ['None', 'g3=0', 'LowEnergy', 'Quadratic']
+    approx_choices = ['None', 'Common', 'LowEnergy', 'Quadratic']
     C = e0 / d
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -33,19 +33,23 @@ class Bilayer(BaseGraphene):
     def Hamiltonian(self,k,u):
         '''
         Returns the full tight-binding Hamiltonian of BLG.
-        Does not support vectorization.
+        For array-like inputs of k, the Hamiltonian of the
+        ith value of k is Hamiltonian[:,:,i]
 
         Parameters
         ----------
-        k:  Wavenumber (1/m).
+        k:  array-like
+            Wavenumber (1/m).
 
-        u:  Interlayer potential energy difference (J).
+        u:  scalar
+            Interlayer potential energy difference (J).
 
         Returns
         ----------
         H:  array-like
             Tight-binding Hamiltonian of bilayer graphene.
         '''
+
         k = np.atleast_1d(k)
         length = np.shape(k)[0]
         ones = np.ones(length)
@@ -61,7 +65,7 @@ class Bilayer(BaseGraphene):
         H23 = H32 = self.g1 * ones
 
         # Trigonal Warping
-        H14 = H41 = 3 * self.g3 * self.a * k
+        H14 = H41 = np.sqrt(3/4) * self.g3 * self.a * k
 
         # g4
         H13 = H31 = H42 = H24 = - (3/4)**(1/2) * self.a * self.g4 * k
@@ -76,16 +80,16 @@ class Bilayer(BaseGraphene):
     ### Band Structure ###
     ######################
 
-    def Dispersion(self,k,u,band,approx='g3=0'):
+    def Dispersion(self,k,u,band,approx='Common'):
         '''
         Returns the energy (J) of an electron with wavevector k (rad/m)
         in first (band=1) or second (band=2) conduction band.
         Only approximation is g3=0.
-        To get holes, simply result multiply by -1.
+        To get valence bands, simply result multiply by -1.
         '''
         p = hbar * self.vF * k
 
-        if approx == 'g3=0':
+        if approx == 'Common':
             radical=(self.g1**4)/4 + (u**2 + self.g1**2)*(p**2)
             return np.sqrt( (self.g1**2)/2 + (u**2)/4 + p**2 + ((-1)**(band))*np.sqrt(radical) )
 
@@ -112,11 +116,18 @@ class Bilayer(BaseGraphene):
 
             return disp
 
-    def kmin(u, band=1):
+    def kmin(self,u, band=1):
         '''
         Returns positive wavenumber at the minimum of the first band in 1/m.
+
+        Parameters
+        ----------
+        u :     array-like
+                Interlayer potential energy difference in units J.
+
+        band:   First (second) conduction band 1 (2)
         '''
-        k2 = ( u**2 / (2*hbar*vF)**2 ) * ( (2*g1**2 + u**2) /( g1**2 + u**2 ) )
+        k2 = ( u**2 / (2*hbar*self.vF)**2 ) * ( (2*self.g1**2 + u**2) /( self.g1**2 + u**2 ) )
         return np.sqrt(k2)
 
     def emin(self,u):
@@ -153,12 +164,12 @@ class Bilayer(BaseGraphene):
         propdos = (e>self.emin(u))*propdkp2 - (e<=u/2)*propdkm2
         return (mult * propdos)
 
-    def Pdiff(self,k,vminus,approx='g3=0'):
+    def Pdiff(self,k,vminus,approx='Common'):
         '''Returns the probability difference between finding an ELECTRON on the TOP layer minus the BOTTOM layer.'''
         
         u = -2*q*(vminus+0.0000001)
         
-        if approx=='g3=0':
+        if approx=='Common':
             e = self.Dispersion(k,u,1)
 
             K = hbar*self.vF*(k+1)
@@ -218,7 +229,7 @@ class Bilayer(BaseGraphene):
     ### Carrier Densities ###
     #########################
 
-    def nplusT0(self,vplus,vminus,approx='g3=0'):
+    def nplusT0(self,vplus,vminus,approx='Common'):
         """
         Analytically computes the electron density at zero temperature.
         Faster than Bilayer.nplus() since this function allows
@@ -229,7 +240,7 @@ class Bilayer(BaseGraphene):
         eF = eVtoJ*vplus
         u  = -2*eVtoJ*vminus
 
-        if approx == 'g3=0':
+        if approx == 'Common':
             # Calculate the radical
             radical = (self.g1**2+u**2) * eF**2 - self.g1**2 * u**2 / 4
 
@@ -284,7 +295,7 @@ class Bilayer(BaseGraphene):
         else:
             print('Invalid Approximation')
 
-    def nplus(self,vplus,vminus, T, approx='g3=0',points = 10000):
+    def nplus(self,vplus,vminus, T, approx='Common',points = 10000):
         '''
         Returns the electron carrier density for various electrostatic potentials vplus, vminus.
         Convention is that electrons have positive carrier density while holes have negative.
@@ -311,7 +322,7 @@ class Bilayer(BaseGraphene):
 
         return np.squeeze(integrate.trapz(integrand,ks,axis=0))
 
-    def nminus(self,vplus,vminus, T, approx='g3=0', points=10000):
+    def nminus(self,vplus,vminus, T, approx='Common', points=10000):
         '''
         Returns the electron carrier density for various electrostatic potentials vplus.
         Convention is that electrons have positive carrier density while holes have negative.
