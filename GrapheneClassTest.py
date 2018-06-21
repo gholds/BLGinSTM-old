@@ -1,15 +1,13 @@
 from Materials import Graphene
 from TunnelingExperiment import TunnelingExperiments
 
-import numpy as np
-from scipy import integrate, linalg
-import matplotlib.pyplot as plt
+#import numpy as np
+#import matplotlib.pyplot as plt
 
-from BLG.Universal_Constants import q
 
 BLG = Graphene.Bilayer()
 
-
+print(BLG.nminus(0.1,0.05,0))
 
 # Ks = np.linspace(0,10**9,num=100)
 # vminus = 0.05

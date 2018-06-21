@@ -1,14 +1,9 @@
-from . import *     # Import from __init__.py
+from . import *         # Import from __init__.py
 from abc import ABCMeta # For inheritance
-#from BLG.Universal_Constants import *
-from Universal_Constants import *
-from StatisticalDistributions import Temperature
 
 class BaseGraphene:
     """
-    Base class for all types of graphene
-
-
+    Base class for all types of graphene.
     """
 
     __metaclass__ = ABCMeta
@@ -18,18 +13,6 @@ class BaseGraphene:
         self.Ac = 3*np.sqrt(3)*(self.a**2) / 2 # (m^2), Area of unit cell of graphene
         self.g0 = 2.8*eVtoJ # (J), Interatom hopping potential
         self.vF = 3*self.a*self.g0/(2*hbar)
-
-    def FermiDirac(self, e, T):
-        """
-        Returns the Fermi-Dirac distribution.
-
-        Parameters
-        ----------
-        e   :   Energy in J
-
-        T   :   Temperature (K)
-        """
-        return np.exp(-np.logaddexp(e/(kB*(T+0.0001)),0))
 
 
 class Bilayer(BaseGraphene):
@@ -57,6 +40,11 @@ class Bilayer(BaseGraphene):
         k:  Wavenumber (1/m).
 
         u:  Interlayer potential energy difference (J).
+
+        Returns
+        ----------
+        H:  array-like
+            Tight-binding Hamiltonian of bilayer graphene.
         '''
         k = np.atleast_1d(k)
         length = np.shape(k)[0]
@@ -172,7 +160,7 @@ class Bilayer(BaseGraphene):
         
         if approx=='g3=0':
             e = self.Dispersion(k,u,1)
-            print(e)
+
             K = hbar*self.vF*(k+1)
             
             numerator = (e**2 - u**2/4)**2 + 4*K**2*e**2 - K**4
@@ -316,7 +304,7 @@ class Bilayer(BaseGraphene):
         KE = self.Dispersion(ks, -2*q*vminus,1,approx)
 
         # Evaluate Fermi-Dirac
-        FD = (self.FermiDirac(KE-q*vplus,T)-self.FermiDirac(KE+q*vplus,T))
+        FD = (Temperature.FermiDirac(KE-q*vplus,T)-Temperature.FermiDirac(KE+q*vplus,T))
 
         # Define integrand
         integrand = ( 2 / np.pi ) * ks * FD
@@ -343,7 +331,7 @@ class Bilayer(BaseGraphene):
 
         # Evaluate Fermi-Dirac
         # Minus sign comes from...
-        FD = (self.FermiDirac(KE-q*vplus,T)-self.FermiDirac(-KE-q*vplus,T))
+        FD = (Temperature.FermiDirac(KE-q*vplus,T)-Temperature.FermiDirac(-KE-q*vplus,T))
 
         # Define integrand
         integrand =  ( 2 / np.pi ) * ks * self.Pdiff(ks,vminus,approx) * FD
