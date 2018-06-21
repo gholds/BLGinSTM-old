@@ -1,6 +1,8 @@
 from . import *     # Import from __init__.py
 from abc import ABCMeta # For inheritance
-from BLG.Universal_Constants import *
+#from BLG.Universal_Constants import *
+from Universal_Constants import *
+from StatisticalDistributions import Temperature
 
 class BaseGraphene:
     """
@@ -170,6 +172,7 @@ class Bilayer(BaseGraphene):
         
         if approx=='g3=0':
             e = self.Dispersion(k,u,1)
+            print(e)
             K = hbar*self.vF*(k+1)
             
             numerator = (e**2 - u**2/4)**2 + 4*K**2*e**2 - K**4
@@ -182,6 +185,14 @@ class Bilayer(BaseGraphene):
             denominator_squared = ( ( (hbar*k)**2/meff )**2 + u**2 )
             
             return - u / np.sqrt(denominator_squared)
+
+        if approx=='None':
+            # Eigenvectors of Hamiltonian
+            v = linalg.eigh(self.Hamiltonian(k,u))[1]
+
+            psi = v[:,-2] # Second highest band (first conduction)
+
+            return psi[0]**2 + psi[1]**2 - psi[2]**2 - psi[3]**2
 
     def kFermi(self,n,u,pm):
         '''
