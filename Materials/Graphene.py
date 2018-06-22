@@ -108,14 +108,14 @@ class Bilayer(BaseGraphene):
             '''
             No approximation. Compute eigenvalues of Hamiltonian
             '''
-
+            k = k.squeeze()
+            u = u.squeeze()
             disp = np.empty(np.shape(k))
 
             for i, wn in enumerate(k):
-                print(np.shape(self.Hamiltonian(wn,u)))
                 disp[i] = linalg.eigvalsh(self.Hamiltonian(wn,u))[1+band]
 
-            return disp
+            return np.array(disp).squeeze()
 
     def kmin(self,u, band=1):
         '''
@@ -187,7 +187,8 @@ class Bilayer(BaseGraphene):
             return - u / np.sqrt(denominator_squared)
 
         if approx=='None':
-
+            k = np.atleast_1d(k).squeeze()
+            u = u.squeeze()
             deltapsi = []
             # Eigenvectors of 
             for i,wn in enumerate(k):
@@ -197,7 +198,8 @@ class Bilayer(BaseGraphene):
 
                 deltapsi.append(psi[0]**2 + psi[1]**2 - psi[2]**2 - psi[3]**2)
 
-            return np.array(deltapsi)
+            return np.array(deltapsi).squeeze()
+
     def kFermi(self,n,u,pm):
         '''
         Returns Fermi vector kF+ for pm=1 and kF- for pm=2 in units rad/m
@@ -332,6 +334,10 @@ class Bilayer(BaseGraphene):
         Returns the electron carrier density for various electrostatic potentials vplus.
         Convention is that electrons have positive carrier density while holes have negative.
         '''
+
+        if approx == 'None':
+            print('Not yet supported')
+            return
         # Treat inputs as ndarrays so we can take advantage of broadcasting
         vplus = np.atleast_1d(vplus)
         vminus = np.atleast_1d(vminus)
