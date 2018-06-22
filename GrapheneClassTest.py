@@ -4,14 +4,47 @@ from TunnelingExperiment import TunnelingExperiments
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy import optimize
 
 BLG = Graphene.Bilayer()
 
-k = np.array([10**8,5*10**8])
-print(BLG.Hamiltonian(k,0)[:,:,1])
+n = 1*10**16
 
-print(BLG.Hamiltonian(k[1],0))
+# charge = lambda x: BLG.nplusT0(x,vminus) - n
+# vplus = optimize.newton(charge,0.1)
+# print(vplus)
+# print(BLG.screened_newton(vplus,vminus))
 
+VMext = np.linspace(-0.1,0.1,num=100)
+
+vm1 = []
+vm2 = []
+
+for vmext in VMext:
+	# Find value of vplus that yields this carrier density
+	charge = lambda x: BLG.nplusT0(x,vmext) - n
+	vplus = optimize.newton(charge,0.1)
+
+	print(vplus,vmext)
+	vm1.append(BLG.screened_vminus(vplus,vmext))
+	#vm2.append(BLG.screened_newton(vplus,vmext))
+
+vm1 = np.array(vm1)
+
+plt.plot(VMext,vm1,label='Abergeletc')
+plt.text(-0.07,0.08,'n={:.2E}'.format(n))
+#plt.plot(VMext,vm2,label='Newton')
+
+plt.show()
+
+
+# from scipy import optimize
+
+# def ftest(x,y):
+# 	return (x-1) + (y-2)**2
+
+# arg = (2,)
+# print(optimize.newton(ftest,0.5,args=arg))
 
 # d1, d2 = 1, 305
 # e1, e2 = 1, 3.9

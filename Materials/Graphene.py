@@ -1,5 +1,6 @@
 from . import *         # Import from __init__.py
 from abc import ABCMeta # For inheritance
+import Newton
 
 class BaseGraphene:
     """
@@ -353,7 +354,7 @@ class Bilayer(BaseGraphene):
 
         # Evaluate Fermi-Dirac
         # Minus sign comes from...
-        FD = (Temperature.FermiDirac(KE-q*vplus,T)-Temperature.FermiDirac(-KE-q*vplus,T))
+        FD = (Temperature.FermiDirac(KE-q*vplus,T))#-Temperature.FermiDirac(-KE-q*vplus,T))
 
         # Define integrand
         integrand =  ( 2 / np.pi ) * ks * self.Pdiff(ks,vminus,approx) * FD
@@ -460,3 +461,54 @@ class Bilayer(BaseGraphene):
         nminus_surface = np.concatenate((-nminus_surface[:0:-1,:],nminus_surface))
         nminus_surface = np.concatenate((nminus_surface[:,:0:-1],nminus_surface),axis = 1)
         return nminus_surface
+
+    #################
+    ### Screening ###
+    #################
+
+    def screened_vminus(self,vplus,vminus):
+
+        vp0 = vplus
+        vm0 = vminus
+
+        def f1(vm1,vp0):
+            return (vm1 - vminus) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+
+        def f2(vp1,vm1):
+            return self.nplus(vplus,vminus,0) - self.nplus(vp1,vm1,0)
+
+        arg1 = (vp0,)
+        vm1 = optimize.newton(f1,vm0,args=arg1)
+
+        arg2 = (vm1,)
+        vp1 = optimize.newton(f2,vp0,args=arg2)
+
+        tol = 0.001
+
+        iters = 1
+
+        while (vp1-vp0)**2+(vm1-vm0)**2 > tol**2 or iters<50:
+            vm0 = vm1
+
+            arg1 = (vp0,)
+            vm1 = optimize.newton(f1,vm0,args=arg1,maxiter=1000)
+
+            arg2 = (vm1,)
+            vp1 = optimize.newton(f2,vp0,args=arg2)
+
+            iters+=1
+        return vm1
+
+    def screened_newton(self,vplus,vminus):
+        n = self.nplus(vplus,vminus,0)
+
+        def f1(v):
+            return (v[1] - vminus) + (q / (4*self.C))*self.nminusT0(v[0],v[1])
+
+        def f2(v):
+            return n - self.nplus(v[0],v[1],0)
+
+        v = Newton.Newton2D(f1,f2,np.array([vplus,vminus]))
+
+        return v
+
