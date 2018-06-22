@@ -25,7 +25,7 @@ class Bilayer(BaseGraphene):
     g3  = 0.3   * eVtoJ # (J), A1-B2 hopping potential
     g4  = 0.12  * eVtoJ # (J), A1-A2 hopping potential (McCann Koshino 2013)
     d   = 3*(10**-10)   # (m), interlayer spacing
-    approx_choices = ['None', 'Common', 'LowEnergy', 'Quadratic']
+    approx_choices = ['None', 'Common', 'LowEnergy']
     C = e0 / d
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -112,6 +112,7 @@ class Bilayer(BaseGraphene):
             disp = np.empty(np.shape(k))
 
             for i, wn in enumerate(k):
+                print(np.shape(self.Hamiltonian(wn,u)))
                 disp[i] = linalg.eigvalsh(self.Hamiltonian(wn,u))[1+band]
 
             return disp
@@ -125,7 +126,7 @@ class Bilayer(BaseGraphene):
         u :     array-like
                 Interlayer potential energy difference in units J.
 
-        band:   First (second) conduction band 1 (2)
+        band:   First (second) conduction band 1 (2).
         '''
         k2 = ( u**2 / (2*hbar*self.vF)**2 ) * ( (2*self.g1**2 + u**2) /( self.g1**2 + u**2 ) )
         return np.sqrt(k2)
@@ -186,13 +187,17 @@ class Bilayer(BaseGraphene):
             return - u / np.sqrt(denominator_squared)
 
         if approx=='None':
-            # Eigenvectors of Hamiltonian
-            v = linalg.eigh(self.Hamiltonian(k,u))[1]
 
-            psi = v[:,-2] # Second highest band (first conduction)
+            deltapsi = []
+            # Eigenvectors of 
+            for i,wn in enumerate(k):
+                v = linalg.eigh( self.Hamiltonian(wn,u) )[1]
 
-            return psi[0]**2 + psi[1]**2 - psi[2]**2 - psi[3]**2
+                psi = v[:,-2] # Second highest band (first conduction)
 
+                deltapsi.append(psi[0]**2 + psi[1]**2 - psi[2]**2 - psi[3]**2)
+
+            return np.array(deltapsi)
     def kFermi(self,n,u,pm):
         '''
         Returns Fermi vector kF+ for pm=1 and kF- for pm=2 in units rad/m
