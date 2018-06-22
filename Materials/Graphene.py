@@ -188,7 +188,7 @@ class Bilayer(BaseGraphene):
 
         if approx=='None':
             k = np.atleast_1d(k).squeeze()
-            u = u.squeeze()
+            u = np.atleast_1d(u).squeeze()
             deltapsi = []
             # Eigenvectors of 
             for i,wn in enumerate(k):
@@ -217,7 +217,7 @@ class Bilayer(BaseGraphene):
         # This says that the region of occupied states is now a disk
         if pm%2==0:
             propk2 = (propk2 >= 0) * propk2
-            propk2 = (Dispersion(kFermi(n,u,1),u,1)<u/2) * propk2
+            propk2 = (self.Dispersion(self.kFermi(n,u,1),u,1)<u/2) * propk2
         
         return np.sqrt( propk2 ) / (2*hbar*self.vF)
 
