@@ -146,14 +146,14 @@ class BLGinSTM:
         eb = max(eF,eF+q*VT)
 
         fermidirac = lambda x : Temperature.FermiDirac(x-q*VT,T) - Temperature.FermiDirac(x,T)
-        integrand2 = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x-0.5*q*VT)*kappa0*self.d1/(2*phibar))
+        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x-0.5*q*VT)*kappa0*self.d1/(2*phibar))
 
         # Points which are divergences or discontinuities
         points = np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u)])
         # Select only those in the domain of integration
         points = points[(ea<points) & (points<eb)]
 
-        tc = C0 * np.sign(VT) * integrate.quad(integrand2,0,q*VT,points=points)[0]
+        tc = C0 * np.sign(VT) * integrate.quad(integrand,0,q*VT,points=points)[0]
         return tc
 
     def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100):

@@ -354,7 +354,7 @@ class Bilayer(BaseGraphene):
 
         # Evaluate Fermi-Dirac
         # Minus sign comes from...
-        FD = (Temperature.FermiDirac(KE-q*vplus,T))#-Temperature.FermiDirac(-KE-q*vplus,T))
+        FD = (Temperature.FermiDirac(KE-q*vplus,T))#-Temperature.FermiDirac(-KE-q*vplus,T)
 
         # Define integrand
         integrand =  ( 2 / np.pi ) * ks * self.Pdiff(ks,vminus,approx) * FD
@@ -483,12 +483,12 @@ class Bilayer(BaseGraphene):
         arg2 = (vm1,)
         vp1 = optimize.newton(f2,vp0,args=arg2)
 
-        tol = 0.001
+        tol = 0.0001
 
         iters = 1
-
-        while (vp1-vp0)**2+(vm1-vm0)**2 > tol**2 or iters<50:
+        while (vp1-vp0)**2+(vm1-vm0)**2 > tol**2:
             vm0 = vm1
+            vp0 = vp1
 
             arg1 = (vp0,)
             vm1 = optimize.newton(f1,vm0,args=arg1,maxiter=1000)
@@ -496,8 +496,12 @@ class Bilayer(BaseGraphene):
             arg2 = (vm1,)
             vp1 = optimize.newton(f2,vp0,args=arg2)
 
-            iters+=1
-        return vm1
+            iters = iters + 1
+
+            if iters > 50:
+                break
+
+        return (vp1, vm1)
 
     def screened_newton(self,vplus,vminus):
         n = self.nplus(vplus,vminus,0)

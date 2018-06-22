@@ -23,10 +23,11 @@ vm2 = []
 for vmext in VMext:
 	# Find value of vplus that yields this carrier density
 	charge = lambda x: BLG.nplusT0(x,vmext) - n
-	vplus = optimize.newton(charge,0.1)
-
-	print(vplus,vmext)
-	vm1.append(BLG.screened_vminus(vplus,vmext))
+	vplus = optimize.newton(charge,np.sign(n)*0.4)
+	print('This is vplus, ', vplus)
+	vp, vm = BLG.screened_vminus(vplus,vmext)
+	vm1.append(vm)
+	print('And the screened value ',vp)
 	#vm2.append(BLG.screened_newton(vplus,vmext))
 
 vm1 = np.array(vm1)
