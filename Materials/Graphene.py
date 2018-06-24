@@ -169,7 +169,7 @@ class Bilayer(BaseGraphene):
     def Pdiff(self,k,vminus,approx='Common'):
         '''Returns the probability difference between finding an ELECTRON on the TOP layer minus the BOTTOM layer.'''
         
-        u = -2*q*(vminus+0.0000001)
+        u = -2*q*(vminus+np.sign(vminus)*0.0000001)
         
         if approx=='Common':
             e = self.Dispersion(k,u,1)
@@ -354,10 +354,10 @@ class Bilayer(BaseGraphene):
 
         # Evaluate Fermi-Dirac
         # Minus sign comes from...
-        FD = (Temperature.FermiDirac(KE-q*vplus,T))#-Temperature.FermiDirac(-KE-q*vplus,T)
+        FD = (Temperature.FermiDirac(KE-q*abs(vplus),T))#-Temperature.FermiDirac(-KE-q*vplus,T)
 
         # Define integrand
-        integrand =  ( 2 / np.pi ) * ks * self.Pdiff(ks,vminus,approx) * FD
+        integrand =  ( 2 /np.pi ) * ks * self.Pdiff(ks,vminus,approx='LowEnergy') * FD
 
         return np.squeeze(integrate.trapz(integrand,ks,axis=0))
 
@@ -466,42 +466,60 @@ class Bilayer(BaseGraphene):
     ### Screening ###
     #################
 
-    def screened_vminus(self,vplus,vminus):
+    def screened_vminus(self,nplus,vminus):
+        """
+        The screened value of vminus given the total charge nplus
+        """
+        a = -1
+        b = 1
 
-        vp0 = vplus
-        vm0 = vminus
+        vminus_screened = []
 
-        def f1(vm1,vp0):
-            return (vm1 - vminus) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+        for vm in vminus:
 
-        def f2(vp1,vm1):
-            return self.nplus(vplus,vminus,0) - self.nplus(vp1,vm1,0)
+            vp = self.eFermi(nplus, -2*q*vm) / q
 
-        arg1 = (vp0,)
-        vm1 = optimize.newton(f1,vm0,args=arg1)
+            def f1(vm1):
+                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp,vm1,0)
 
-        arg2 = (vm1,)
-        vp1 = optimize.newton(f2,vp0,args=arg2)
+            vm1 = optimize.brentq(f1,a,b)
 
-        tol = 0.0001
 
-        iters = 1
-        while (vp1-vp0)**2+(vm1-vm0)**2 > tol**2:
-            vm0 = vm1
-            vp0 = vp1
 
-            arg1 = (vp0,)
-            vm1 = optimize.newton(f1,vm0,args=arg1,maxiter=1000)
+            vminus_screened.append(vm1)
 
-            arg2 = (vm1,)
-            vp1 = optimize.newton(f2,vp0,args=arg2)
+        return np.array(vminus_screened)
 
-            iters = iters + 1
+    def screened_vminus2(self,nplus,vminus):
+        """
+        The screened value of vminus given the total charge nplus
+        """
+        a, b = -1, 1
 
-            if iters > 50:
-                break
+        vminus_screened = []
 
-        return (vp1, vm1)
+        for vm in vminus:
+            vm0 = vm
+            vp0 = self.eFermi(nplus, -2*q*vm) / q
+
+            def f1(vm1):
+                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+
+            vm1 = optimize.brentq(f1,a,b)
+            vp1 = self.eFermi(nplus, -2*q*vm1) / q
+
+            while (vm1-vm0)**2 + (vp1-vp0)**2 > 0.0001:
+                vp0, vm0 = vp1, vm1
+
+                def f1(vm1):
+                    return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+
+                vm1 = optimize.brentq(f1,a,b)
+                vp1 = self.eFermi(nplus, -2*q*vm1) / q
+            
+            vminus_screened.append(vm1)
+
+        return np.array(vminus_screened)
 
     def screened_newton(self,vplus,vminus):
         n = self.nplus(vplus,vminus,0)

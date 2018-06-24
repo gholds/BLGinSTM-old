@@ -45,88 +45,139 @@ class BLGinSTM:
     def planeminus(self,vplus,vminus,VGplus,VGminus):
         return (self.C1+self.C2)*(vminus - VGminus) + (self.C1 - self.C2)*(vplus - VGplus) - 4*self.BLG.C*vminus
 
+    def vplus_n0(self,VT,VB):
+        """
+        Potential of the BLG layer when no charge has accumulated
+        """
+        num = self.e1*self.d2*VT + self.e2*self.d1*VB
+        den = self.d1*self.e2 + self.d2*self.e1
+        return num / den
 
-    def generate_vplus_vminus(self,VTrange,num_vts_100,VBrange,num_vbs_100):
+    def vminus_n0(self,VT,VB):
+        """
+        Potential difference between the layers when no charge has accumulated.
+        """
+        num = BLG.d * (self.e1 + self.e2)
+        den = 4*(self.e2*self.d1 + self.e1*self.d2)
+        return (num/den)*(VT-VB)
+
+    def n_exists(self,VT,VB):
+        """
+        Boolean function that returns whether or not charge has accumulated
+        """
+        u = self.vminus_n0(VT,VB)
+        eF= self.vplus_n0(VT,VB)
+
+        return abs(eF) > abs(emin(u))
+
+    def vplus_n1(self,VT,VB):
+        """
+        
+        """
+
+    def vminus_n1(self,VT,VB):
+        return (BLG.d / 4) * ()
+
+    def generate_vplus_vminus(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
         '''Finds equilibrium values of V+ and V- for a grid of
         tip voltages VT and gate voltages VG.
         Broadcasts in batches of 10.'''
 
-        # Load values of vplus and vminus to search over
+        if method == 'DasSarma':
+            num_vts = int(100 * num_vts_100) # number of points for VT
+            num_vbs = int(100 * num_vbs_100) # number of points for VB
 
-        print('Loading Carrier Densities')
-        vplus = self.BLG.get_vplus(self.T)
-        vplus = vplus.reshape(1,len(vplus),1,1).astype('float32')
-        vminus = self.BLG.get_vminus(self.T)
-        vminus = vminus.reshape(len(vminus),1,1,1).astype('float32')
+            VT = np.linspace(VTrange[0],VTrange[1],num=num_vts)
+            VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs)
 
-        # b refers to 'batch size'
-        # We loop over the range of tip and gate voltages
-        # and broadcast in batches to avoid memory errors
-        b = 5
 
-        # load the carrier densities from their files
-        nplus_array = self.BLG.get_nplus(self.T).astype('float32')
-        nminus_array = self.BLG.get_nminus(self.T).astype('float32')
+            vp = np.empty(np.shape(VT*VB[:,np.newaxis]))
+            vm = np.empty(np.shape(vp))
 
-        nplus_array = nplus_array[:,:,np.newaxis,np.newaxis]
-        nminus_array = nminus_array[:,:,np.newaxis,np.newaxis]
+            for i,vt in enumerate(VT):
+                for j,vb in enumerate(VB):
+                    if not n_exists(vt,vb):
+                        vp[i,j] = self.vplus_n0(VT,VB)
+                        vm[i,j] = self.vminus_n0(VT,VB)
 
-        # Choose tip and backgate voltages
-        num_vts = int(100 * num_vts_100) # number of points for VT
-        num_vbs = int(100 * num_vbs_100) # number of points for VB
+        if method == 'YoungLevitov':
+            # Load values of vplus and vminus to search over
 
-        # Create array of Tip and Backgate voltages
-        VT = np.linspace(VTrange[0],VTrange[1],num=num_vts)
-        VT = VT.reshape(1,1,num_vts,1).astype('float32')
-        VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs)
-        VB = VB.reshape(1,1,1,num_vbs).astype('float32')
+            print('Loading Carrier Densities')
+            vplus = self.BLG.get_vplus(self.T)
+            vplus = vplus.reshape(1,len(vplus),1,1).astype('float32')
+            vminus = self.BLG.get_vminus(self.T)
+            vminus = vminus.reshape(len(vminus),1,1,1).astype('float32')
 
-        # Arrays where we will load the solutions
-        vplus0 = np.zeros((num_vts,num_vbs))
-        vminus0 = np.zeros((num_vts,num_vbs))
+            # b refers to 'batch size'
+            # We loop over the range of tip and gate voltages
+            # and broadcast in batches to avoid memory errors
+            b = 5
 
-        print('Computing equilibrium voltages')
-        for i in range(int(num_vts/b)):
-            i_frac = i / int(num_vts/b)
-            
-            for j in range(int(num_vbs/b)):
-                j_frac = ( j / int(num_vbs/b) ) * (1/int(num_vts/b))
-                print('{} % finished'.format( round(100*(i_frac+j_frac)) ), end='\r' )
-                VGplus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]+VB[:,:,:,b*j:b*j+b])
-                VGminus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]-VB[:,:,:,b*j:b*j+b])
+            # load the carrier densities from their files
+            nplus_array = self.BLG.get_nplus(self.T).astype('float32')
+            nminus_array = self.BLG.get_nminus(self.T).astype('float32')
 
-                # Generate the intersecting planes for each pair of voltages
-                plane_minus_array = self.planeminus(vplus, vminus,VGplus,VGminus)
-                plane_plus_array  = self.planeplus(vplus,vminus,VGplus,VGminus)
+            nplus_array = nplus_array[:,:,np.newaxis,np.newaxis]
+            nminus_array = nminus_array[:,:,np.newaxis,np.newaxis]
 
-                # Generate the electrostatic equations
-                f1 = plane_plus_array - (-q)*nplus_array
-                f2 = plane_minus_array - (-q)*nminus_array
+            # Choose tip and backgate voltages
+            num_vts = int(100 * num_vts_100) # number of points for VT
+            num_vbs = int(100 * num_vbs_100) # number of points for VB
 
-                # Find the magnitudes
-                F = f1**2 + f2**2
+            # Create array of Tip and Backgate voltages
+            VT = np.linspace(VTrange[0],VTrange[1],num=num_vts)
+            VT = VT.reshape(1,1,num_vts,1).astype('float32')
+            VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs)
+            VB = VB.reshape(1,1,1,num_vbs).astype('float32')
 
-                # Minimum for each pair of voltages
-                Fmins = np.min(F,axis=(0,1))
+            # Arrays where we will load the solutions
+            vplus0 = np.zeros((num_vts,num_vbs))
+            vminus0 = np.zeros((num_vts,num_vbs))
 
-                # Array where we will put the indices of the voltages
-                Fmins_args= np.empty(np.shape(Fmins),dtype=(int,2))
+            print('Computing equilibrium voltages')
+            for i in range(int(num_vts/b)):
+                i_frac = i / int(num_vts/b)
+                
+                for j in range(int(num_vbs/b)):
+                    j_frac = ( j / int(num_vbs/b) ) * (1/int(num_vts/b))
+                    print('{} % finished'.format( round(100*(i_frac+j_frac)) ), end='\r' )
+                    VGplus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]+VB[:,:,:,b*j:b*j+b])
+                    VGminus = (1 / 2) * (VT[:,:,b*i:b*i+b,:]-VB[:,:,:,b*j:b*j+b])
 
-                # Find the indices of V+ and V-
-                for k in range(b):
-                    for l in range(b):
-                        Fmins_args[k,l] = np.where(F[:,:,k,l]==Fmins[k,l])
+                    # Generate the intersecting planes for each pair of voltages
+                    plane_minus_array = self.planeminus(vplus, vminus,VGplus,VGminus)
+                    plane_plus_array  = self.planeplus(vplus,vminus,VGplus,VGminus)
 
-                # Record the values of V+ and V- based on the indices
-                vplus0[b*i:b*i+b,b*j:b*j+b] = vplus[:,Fmins_args[:,:,1].flatten('C')].squeeze().reshape(b,b)
-                vminus0[b*i:b*i+b,b*j:b*j+b] = vminus[Fmins_args[:,:,0].flatten('C')].squeeze().reshape(b,b)
+                    # Generate the electrostatic equations
+                    f1 = plane_plus_array - (-q)*nplus_array
+                    f2 = plane_minus_array - (-q)*nminus_array
 
-        print('100 % Finished')
-        return (vplus0, vminus0)
+                    # Find the magnitudes
+                    F = f1**2 + f2**2
+
+                    # Minimum for each pair of voltages
+                    Fmins = np.min(F,axis=(0,1))
+
+                    # Array where we will put the indices of the voltages
+                    Fmins_args= np.empty(np.shape(Fmins),dtype=(int,2))
+
+                    # Find the indices of V+ and V-
+                    for k in range(b):
+                        for l in range(b):
+                            Fmins_args[k,l] = np.where(F[:,:,k,l]==Fmins[k,l])
+
+                    # Record the values of V+ and V- based on the indices
+                    vplus0[b*i:b*i+b,b*j:b*j+b] = vplus[:,Fmins_args[:,:,1].flatten('C')].squeeze().reshape(b,b)
+                    vminus0[b*i:b*i+b,b*j:b*j+b] = vminus[Fmins_args[:,:,0].flatten('C')].squeeze().reshape(b,b)
+
+            print('100 % Finished')
+            return (vplus0, vminus0)
 
 
     def tunnelcurrent(self,vplus,vminus,VT,T):
         '''Returns tunnel current.'''
+
         if VT==0: return 0
 
         eF = q*vplus
@@ -156,12 +207,12 @@ class BLGinSTM:
         tc = C0 * np.sign(VT) * integrate.quad(integrand,0,q*VT,points=points)[0]
         return tc
 
-    def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100):
+    def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
         '''Generates the tunnel current over range of VTrange, VBrange 
         (lists of length 2 [min,max]. Number of point * 100.'''
 
         # First get equilibrium values of voltages
-        vplus0, vminus0 = self.generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100)
+        vplus0, vminus0 = self.generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100,method)
 
         # Then generate an array of the tip voltages
         VT = np.linspace(VTrange[0],VTrange[1],num=int(100*num_vts_100))
