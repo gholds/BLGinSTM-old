@@ -259,6 +259,8 @@ class BLGinSTM:
 
         # Then generate an array of the tip voltages
         VT = np.linspace(VTrange[0],VTrange[1],num=int(100*num_vts_100))
+        VB = np.linspace(VBrange[0],VBrange[1],num=int(100*num_vbs_100))
+
         tc = np.empty(np.shape(vplus0))
 
         print('Computing tunnel currents')
@@ -267,4 +269,26 @@ class BLGinSTM:
             for j in range(np.shape(tc)[1]):
                 tc[i,j] = self.tunnelcurrent(vplus0[i,j],vminus0[i,j],VT[i],0)
 
-        return tc
+        self.VT = VT
+        self.VB = VB
+        self.I = tc
+
+    def plot_dIdV(self,show=True,save=False):
+        dIdV = np.gradient(self.I,axis=0) # dI/dV
+        IV = self.I / self.VT[:,np.newaxis] # I/V
+
+        fig, ax = plt.subplots(figsize=(7,6))
+
+        dIdV_plot = plt.imshow(dIdV/IV,cmap=cm.RdYlGn,origin='lower',
+                                aspect='auto',extent=(self.VB[0],self.VB[-1],self.VT[0],self.VT[-1]))
+        fig.suptitle('$dI/dV$, Tip Height ={} nm'.format(self.d1*10**9))
+        cbar = fig.colorbar(dIdV_plot,label='$(dI/dV) / (I/V)')
+
+        if show == True:
+            plt.show()
+
+        if save == True:
+            import os
+            save_dir = os.path.join( os.path.dirname(__file__),
+                                    'dIdV_Plots')
+            fig.savefig(os.path.join(save_dir,'tip_height_{}ang.png'.format(round(self.d1*10**10))))
