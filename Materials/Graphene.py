@@ -163,7 +163,7 @@ class Bilayer(BaseGraphene):
         
         # If energy is above sombrero region, add the positive solution
         # If within, also subtract the negative solution
-        propdos = (e>self.emin(u))*propdkp2 - (e<=u/2)*propdkm2
+        propdos = (e>self.emin(u))*propdkp2 - (e<=abs(u/2))*propdkm2
         return (mult * propdos)
 
     def Pdiff(self,k,vminus,approx='Common'):

@@ -57,7 +57,7 @@ class BLGinSTM:
         """
         Potential difference between the layers when no charge has accumulated.
         """
-        num = BLG.d * (self.e1 + self.e2)
+        num = self.BLG.d * (self.e1 + self.e2)
         den = 4*(self.e2*self.d1 + self.e1*self.d2)
         return (num/den)*(VT-VB)
 
@@ -65,18 +65,56 @@ class BLGinSTM:
         """
         Boolean function that returns whether or not charge has accumulated
         """
-        u = self.vminus_n0(VT,VB)
-        eF= self.vplus_n0(VT,VB)
+        vplus = self.vplus_n0(VT,VB)
 
-        return abs(eF) > abs(emin(u))
+        u = -2*q*self.vminus_n0(VT,VB)
+        minimum = self.BLG.emin(u) / (q)
+
+        return abs(vplus) >= abs(minimum)
+
+    def nElectron(self,vplus,VT,VB):
+        '''Returns electron density (m^-2) as a function of electrode-sample potential differences'''
+        s1 = (VT-vplus) * self.C1
+        s2 = (VB-vplus) * self.C2
+        
+        return (s1 + s2) / q
+
+    def vminus_n1(self,vplus,VT,VB):
+        return (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
+
+    
+    def vplus_root(self,vplus,VT,VB):
+        """
+        Self-consistency equation for the fermi level
+        """
+        u = -2*q*self.vminus_n1(vplus,VT,VB)
+        n = self.nElectron(vplus,VT,VB)
+
+        term1 = 4 * (q*vplus *self.BLG.g1)**2
+        term2 = ( 4*(q*vplus)**2 - self.BLG.g1**2 )* u**2
+        term3 = - (hbar**2 * self.BLG.vF**2 * pi)**2 * n**2
+
+        return term1 + term2 + term3
 
     def vplus_n1(self,VT,VB):
         """
-        
+        Returns the Fermi level when charge has accumulated.
+        Does so by finding a root to a self-consistent equation.
         """
 
-    def vminus_n1(self,VT,VB):
-        return (BLG.d / 4) * ()
+        vplus = self.vplus_n0(VT,VB)
+
+        if not self.n_exists(VT,VB):
+            return vplus
+
+        # otherwise we need to find the self-consistent fermi level
+        f = lambda x: self.vplus_root(x,VT,VB)
+
+        a = min(0,vplus)
+        b = max(0,vplus)
+
+        return optimize.brentq(f,a,b)
+
 
     def generate_vplus_vminus(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
         '''Finds equilibrium values of V+ and V- for a grid of
@@ -87,18 +125,23 @@ class BLGinSTM:
             num_vts = int(100 * num_vts_100) # number of points for VT
             num_vbs = int(100 * num_vbs_100) # number of points for VB
 
-            VT = np.linspace(VTrange[0],VTrange[1],num=num_vts)
-            VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs)
+            VT = np.linspace(VTrange[0],VTrange[1],num=num_vts).reshape((num_vts,1))
+            VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs).reshape((1,num_vbs))
 
 
-            vp = np.empty(np.shape(VT*VB[:,np.newaxis]))
+            vp = np.empty(np.shape(VT*VB))
             vm = np.empty(np.shape(vp))
 
-            for i,vt in enumerate(VT):
-                for j,vb in enumerate(VB):
-                    if not n_exists(vt,vb):
-                        vp[i,j] = self.vplus_n0(VT,VB)
-                        vm[i,j] = self.vminus_n0(VT,VB)
+            for i in range(num_vts):
+                for j in range(num_vbs):
+                    if not self.n_exists(VT[i,0],VB[0,j]):
+                        vp[i,j] = self.vplus_n0(VT[i,0],VB[0,j])
+                        vm[i,j] = self.vminus_n0(VT[i,0],VB[0,j])
+                    else:
+                        vp[i,j] = self.vplus_n1(VT[i,0],VB[0,j])
+                        vm[i,j] = self.vminus_n1(vp[i,j],VT[i,0],VB[0,j])
+
+            return (vp, vm)
 
         if method == 'YoungLevitov':
             # Load values of vplus and vminus to search over
@@ -183,7 +226,7 @@ class BLGinSTM:
         eF = q*vplus
         u = -2*q*vminus
 
-        # Estimate prefactor C
+        # Estimate prefactor C0
         C0 = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
 
         # Calculate the parameters we need
@@ -218,10 +261,10 @@ class BLGinSTM:
         VT = np.linspace(VTrange[0],VTrange[1],num=int(100*num_vts_100))
         tc = np.empty(np.shape(vplus0))
 
-        print('Computing tunnelcurrents')
+        print('Computing tunnel currents')
         for i in range(np.shape(tc)[0]):
-            print('{:.2}\% finished'.format( 100* i / int(np.shape(tc)[0])))
+            print('{} % finished'.format( 100* i / int(np.shape(tc)[0])),end='\r')
             for j in range(np.shape(tc)[1]):
-                tc[i,j] = self.tunnelcurrent(vplus0[i,j],vminus0[i,j],VT[i])
+                tc[i,j] = self.tunnelcurrent(vplus0[i,j],vminus0[i,j],VT[i],0)
 
         return tc

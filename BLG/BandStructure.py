@@ -169,6 +169,8 @@ def pTop_Posun(k,u):
     # For k=0, set x2y2 = 0 and z2w2 = 1
     x2y2 = x2y2 - (k==0)*x2y2
     z2w2 = z2w2 - (k==0)*(-1+z2w2)
+    print(x2y2)
+    print(z2w2)
     return (x2y2) / (x2y2 + z2w2)
 
 

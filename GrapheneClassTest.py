@@ -8,34 +8,19 @@ import matplotlib.pyplot as plt
 
 from scipy import optimize
 
-BLG = Graphene.Bilayer()
 
-n =10**16
+d1, d2 = 1, 305 # nanometers
+e1, e2 = 1, 3.9 # relative permittivity
+T = 0			# K
+Wtip = 5 		# eV
 
-# charge = lambda x: BLG.nplusT0(x,vminus) - n
-# vplus = optimize.newton(charge,0.1)
-# print(vplus)
-# print(BLG.screened_newton(vplus,vminus))
+STM = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
-VMext = np.linspace(-0.1,0.1,num=100)
+points = 30
+points = points/100
 
-vm1 = []
-vm2 = []
+I =STM.generate_tunnelcurrent([-0.2,0.2],points,[-30,30],points,method='DasSarma')
 
-# for vmext in VMext:
-# 	# Find value of vplus that yields this carrier density
-# 	vm = BLG.screened_vminus(n,vmext)
-# 	vm1.append(vm)
-# 	# vm1.append(Temperature.FermiDirac(KE-q*abs(vplus),0))
+plt.imshow(np.gradient(I,axis=0))
 
-VMext = np.array([0.1])
-vm1 = BLG.screened_vminus(n,VMext)
-#vm2 = BLG.screened_vminus(5*n,VMext)
-
-print(vm1[0])
-
-# plt.plot(VMext,vm1)
-# plt.plot(VMext,vm2)
-# plt.text(-0.07,0.08,'n={:.2E}'.format(n))
-
-# plt.show()
+plt.show()
