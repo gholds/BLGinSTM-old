@@ -6,7 +6,7 @@ from UniversalConstants import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy import optimize
+from scipy import optimize,integrate
 
 
 d1, d2 = 1, 305 # nanometers
@@ -14,13 +14,14 @@ e1, e2 = 1, 3.9 # relative permittivity
 T = 0			# K
 Wtip = 5 		# eV
 
+BLG = Graphene.Bilayer()
 STM = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
-points = 30
-points = points/100
+VT = np.linspace(-0.2,0.2,num=100)
 
-I =STM.generate_tunnelcurrent([-0.2,0.2],points,[-30,30],points,method='DasSarma')
+STM.generate_tunnelcurrent([-0.2,0.2],1,
+							[30,30],.01,
+							method='DasSarma')
 
-plt.imshow(np.gradient(I,axis=0))
-
+plt.plot(VT,np.gradient(STM.I))
 plt.show()

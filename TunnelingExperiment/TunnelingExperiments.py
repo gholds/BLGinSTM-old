@@ -82,7 +82,7 @@ class BLGinSTM:
     def vminus_n1(self,vplus,VT,VB):
         return (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
 
-    
+    # CHECKED
     def vplus_root(self,vplus,VT,VB):
         """
         Self-consistency equation for the fermi level
@@ -96,24 +96,60 @@ class BLGinSTM:
 
         return term1 + term2 + term3
 
+    # CHECKED
     def vplus_n1(self,VT,VB):
         """
         Returns the Fermi level when charge has accumulated.
         Does so by finding a root to a self-consistent equation.
         """
 
-        vplus = self.vplus_n0(VT,VB)
-
-        if not self.n_exists(VT,VB):
-            return vplus
-
         # otherwise we need to find the self-consistent fermi level
         f = lambda x: self.vplus_root(x,VT,VB)
+
+        vplus = self.vplus_n0(VT,VB)
 
         a = min(0,vplus)
         b = max(0,vplus)
 
         return optimize.brentq(f,a,b)
+
+    # CHECKED
+    def v_eq(self,VT,VB):
+        """
+        Returns the Fermi Level first checking for charge. Uses the appropriate vplus formula.
+        """
+
+        if not self.n_exists(VT,VB):
+            vp = self.vplus_n0(VT,VB)
+            return (vp, self.vminus_n0(VT,VB))
+
+        else:
+            vp = self.vplus_n1(VT,VB)
+            return (vp,self.vminus_n1(vp,VT,VB))
+
+    def plot_v_eq(self,VT,VB):
+        """
+        Plots the equilibrium voltages of the graphene wrt the gate voltages.
+        Either VT is scalar with VB array-like, or VB is scalar with VT array-like.
+        """
+
+        vp = np.empty_like(VT)
+        vm = np.empty_like(VT)
+        em = np.empty_like(VT)
+
+        for i in range(len(VT)):
+            vp[i], vm[i] = self.v_eq(VT[i],VB)
+            em[i] = self.BLG.emin(-2*q*vm[i])/q
+
+        plt.plot(VT,vp,'r-',label='$V_+$')
+        plt.plot(VT,vm,'b-',label='V_-')
+        plt.plot(VT,-vm,'b-')
+        plt.plot(VT,em,'g-',label='Emin')
+        plt.plot(VT,-em,'g-')
+
+        plt.legend()
+        plt.show()
+
 
 
     def generate_vplus_vminus(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
@@ -130,7 +166,7 @@ class BLGinSTM:
 
 
             vp = np.empty(np.shape(VT*VB))
-            vm = np.empty(np.shape(vp))
+            vm = np.empty_like(vp)
 
             for i in range(num_vts):
                 for j in range(num_vbs):
@@ -221,8 +257,6 @@ class BLGinSTM:
     def tunnelcurrent(self,vplus,vminus,VT,T):
         '''Returns tunnel current.'''
 
-        if VT==0: return 0
-
         eF = q*vplus
         u = -2*q*vminus
 
@@ -233,21 +267,18 @@ class BLGinSTM:
         phibar = self.Wtip - (q/2)*VT
 
         kappa0 = np.sqrt(2*m*phibar)/hbar
-        
-        # Calculate the domain of integration
-        # Integrate in a positive direction, then change the sign later if needed
-        ea = min(eF,eF+q*VT)
-        eb = max(eF,eF+q*VT)
 
-        fermidirac = lambda x : Temperature.FermiDirac(x-q*VT,T) - Temperature.FermiDirac(x,T)
-        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x-0.5*q*VT)*kappa0*self.d1/(2*phibar))
+        fermidirac = lambda x : Temperature.FermiDirac(x-0.5*q*VT,T) - Temperature.FermiDirac(x+0.5*q*VT,T)
+        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x+0.5*q*VT,u) * np.exp((x)*kappa0*self.d1/(2*phibar))
 
-        # Points which are divergences or discontinuities
-        points = np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u)])
-        # Select only those in the domain of integration
-        points = points[(ea<points) & (points<eb)]
+        # Points which are divergences or discontinuities or the bounds
+        bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),10*q,-10*q]) ) 
+        bounds = bounds - eF - 0.5*q*VT
+        tc = np.empty(len(bounds)-1)
 
-        tc = C0 * np.sign(VT) * integrate.quad(integrand,0,q*VT,points=points)[0]
+        for i in range(len(tc)):
+            tc[i] = integrate.quad(integrand,bounds[i],bounds[i+1])[0]
+
         return tc
 
     def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
