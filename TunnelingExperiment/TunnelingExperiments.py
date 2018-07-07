@@ -323,3 +323,72 @@ class BLGinSTM:
             save_dir = os.path.join( os.path.dirname(__file__),
                                     'dIdV_Plots')
             fig.savefig(os.path.join(save_dir,'tip_height_{}ang.png'.format(round(self.d1*10**10))))
+
+    def plot_schematic(self,VT, VB):
+        '''
+        Displays a visualization of the experiment
+        '''
+
+        vplus, vminus = self.v_eq(VT,VB)
+        u = -2*q*vminus
+
+        n = self.nElectron(vplus,VT,VB)
+
+        # Obtain the BLG dispersion
+        kF = self.BLG.kFermi(n,u,1)
+        kMax = self.BLG.kFermi(10**17,-2*q*0.1,1) # constant across all
+        ks = np.linspace(-kMax,kMax,num=50)
+        blg_disp = self.BLG.Dispersion(ks,u,1)/q
+        fig = plt.figure(figsize=(8,4))
+
+        ax2 = fig.add_subplot(122)
+        ax1 = fig.add_subplot(121,sharey=ax2)
+
+        for axis in fig.axes:
+            axis.axis('off')
+
+        ax2.plot(ks,blg_disp-vplus,color='k')
+        ax2.plot(ks,-blg_disp-vplus,color='k')
+        ax2.set_ylim((-0.12,0.12))
+
+
+        ax2.fill_between(ks,-blg_disp[0]-vplus,-blg_disp-vplus,color='skyblue')
+
+        if 0 < np.max(-blg_disp-vplus):
+            ax2.fill_between(ks,0,np.max(-blg_disp-vplus),color='w')
+        elif 0 > np.min(blg_disp-vplus):
+            ax2.fill_between(ks,blg_disp-vplus,np.zeros_like(ks),
+                            where= 0 > blg_disp-vplus ,color='skyblue')
+
+        ax1.fill_between(ks, np.min(-blg_disp-vplus),-VT,color='skyblue')
+
+        # Draw line for tip
+        xyA = (ks[0],-VT)
+        xyB = (kF,-VT)
+        con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
+                                axesA=ax1,axesB=ax2,color='k')
+        ax1.add_artist(con)
+
+        # Draw line for sample fermi level
+        xyA = (ks[-1],0)
+        xyB = (kF, 0)
+        con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
+                                axesA=ax1,axesB=ax2,color='k')
+        ax1.add_artist(con)
+
+        # Draw lines at extrema
+        extrema = [-u/(2*q),u/(2*q),self.BLG.emin(u)/q,-self.BLG.emin(u)/q]
+
+        for ext in extrema:
+            ax2.plot(ks,ext*np.ones_like(ks),color='gray')
+
+
+        # for ext in extrema:
+        #     xyA = (ks[-1],ext-vplus)
+        #     xyB = (kF,ext-vplus)
+        #     con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
+        #                         axesA=ax1,axesB=ax2,color='gray')
+        #     ax1.add_artist(con)
+
+
+        return fig

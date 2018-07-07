@@ -17,11 +17,6 @@ Wtip = 5 		# eV
 BLG = Graphene.Bilayer()
 STM = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
-VT = np.linspace(-0.2,0.2,num=100)
 
-STM.generate_tunnelcurrent([-0.2,0.2],1,
-							[30,30],.01,
-							method='DasSarma')
-
-plt.plot(VT,np.gradient(STM.I))
+fig = STM.plot_schematic(0.05,-50)
 plt.show()
