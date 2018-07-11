@@ -254,10 +254,13 @@ class BLGinSTM:
             return (vplus0, vminus0)
 
 
+    def fermidirac(self, x, vt):
+        return Temperature.FermiDirac(x-q*vt,0) - Temperature.FermiDirac(x,0)
+
     def tunnelcurrent(self,vplus,vminus,VT,T):
         '''Returns tunnel current.'''
 
-        eF = q*vplus
+        eF = -q*vplus
         u = -2*q*vminus
 
         # Estimate prefactor C0
@@ -268,18 +271,18 @@ class BLGinSTM:
 
         kappa0 = np.sqrt(2*m*phibar)/hbar
 
-        fermidirac = lambda x : Temperature.FermiDirac(x-0.5*q*VT,T) - Temperature.FermiDirac(x+0.5*q*VT,T)
-        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x+0.5*q*VT,u) * np.exp((x)*kappa0*self.d1/(2*phibar))
+        fermidirac = lambda x : Temperature.FermiDirac(x-q*VT,T) - Temperature.FermiDirac(x,T)
+        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*phibar))
 
         # Points which are divergences or discontinuities or the bounds
         bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),10*q,-10*q]) ) 
-        bounds = bounds - eF - 0.5*q*VT
+        bounds = bounds - eF
         tc = np.empty(len(bounds)-1)
 
         for i in range(len(tc)):
             tc[i] = integrate.quad(integrand,bounds[i],bounds[i+1])[0]
 
-        return tc
+        return tc.sum()
 
     def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
         '''Generates the tunnel current over range of VTrange, VBrange 
@@ -306,11 +309,11 @@ class BLGinSTM:
 
     def plot_dIdV(self,show=True,save=False):
         dIdV = np.gradient(self.I,axis=0) # dI/dV
-        IV = self.I / self.VT[:,np.newaxis] # I/V
+        #IV = self.I / self.VT[:,np.newaxis] # I/V
 
         fig, ax = plt.subplots(figsize=(7,6))
 
-        dIdV_plot = plt.imshow(dIdV/IV,cmap=cm.RdYlGn,origin='lower',
+        dIdV_plot = plt.imshow(dIdV,cmap=cm.RdYlGn,origin='lower',
                                 aspect='auto',extent=(self.VB[0],self.VB[-1],self.VT[0],self.VT[-1]))
         fig.suptitle('$dI/dV$, Tip Height ={} nm'.format(self.d1*10**9))
         cbar = fig.colorbar(dIdV_plot,label='$(dI/dV) / (I/V)')
