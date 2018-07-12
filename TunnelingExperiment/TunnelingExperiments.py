@@ -275,7 +275,8 @@ class BLGinSTM:
         integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*phibar))
 
         # Points which are divergences or discontinuities or the bounds
-        bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),10*q,-10*q]) ) 
+        # At one point the end points were changing the result, but no longer
+        bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),100*q,-100*q]) ) 
         bounds = bounds - eF
         tc = np.empty(len(bounds)-1)
 
