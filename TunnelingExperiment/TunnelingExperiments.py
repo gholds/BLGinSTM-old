@@ -316,10 +316,11 @@ class BLGinSTM:
         fig, ax = plt.subplots(figsize=(7,6))
 
         dIdV_plot = plt.imshow(dIdV,cmap=cm.RdYlGn,origin='lower',
-                                aspect='auto',extent=(self.VB[0],self.VB[-1],self.VT[0],self.VT[-1]))
+                                aspect='auto',extent=(self.VB[0],self.VB[-1],1e3*self.VT[0],1e3*self.VT[-1]))
         fig.suptitle('$dI/dV$, Tip Height ={} nm'.format(self.d1*10**9))
-        cbar = fig.colorbar(dIdV_plot,label='$(dI/dV) / (I/V)')
-
+        cbar = fig.colorbar(dIdV_plot,label='$dI/dV$ (S)')
+        ax.set_xlabel('Gate Voltage (V)')
+        ax.set_ylabel('Tip Voltage (mV)')
         if show == True:
             plt.show()
 
