@@ -22,6 +22,6 @@ def FermiDirac(en, T):
 	kB = 1.38064852*10**-23 # J/K 
 
 	# Using logaddexp reduces chance of underflow error
-	FD = np.exp( -np.logaddexp(en/(kB*(T+0.0001)),0) )
+	FD = np.exp( -np.logaddexp(en/(kB*(T+0.000000000001)),0) )
 
 	return FD

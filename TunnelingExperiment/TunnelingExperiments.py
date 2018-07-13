@@ -142,11 +142,11 @@ class BLGinSTM:
             em[i] = self.BLG.emin(-2*q*vm[i])/q
 
         plt.plot(VT,vp,'r-',label='$V_+$')
-        plt.plot(VT,vm,'b-',label='V_-')
-        plt.plot(VT,-vm,'b-')
         plt.plot(VT,em,'g-',label='Emin')
         plt.plot(VT,-em,'g-')
 
+        plt.xlabel('Tip Voltage')
+        plt.ylabel('Voltages')
         plt.legend()
         plt.show()
 
@@ -276,8 +276,9 @@ class BLGinSTM:
 
         # Points which are divergences or discontinuities or the bounds
         # At one point the end points were changing the result, but no longer
-        bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),100*q,-100*q]) ) 
+        bounds = np.sort( np.array([u/2, -u/2, self.BLG.emin(u), -self.BLG.emin(u),eF,eF+q*VT]) ) 
         bounds = bounds - eF
+
         tc = np.empty(len(bounds)-1)
 
         for i in range(len(tc)):
@@ -331,68 +332,94 @@ class BLGinSTM:
     def plot_schematic(self,VT, VB):
         '''
         Displays a visualization of the experiment
+
+        Arguments
+        ----------
+        VT:     array-like, Range of tip voltages to sweep
+
+        VB:     scalar, Backgate voltage at which to sweep tip voltage
         '''
-
-        vplus, vminus = self.v_eq(VT,VB)
-        u = -2*q*vminus
-
-        n = self.nElectron(vplus,VT,VB)
-
-        # Obtain the BLG dispersion
-        kF = self.BLG.kFermi(n,u,1)
-        kMax = self.BLG.kFermi(10**17,-2*q*0.1,1) # constant across all
-        ks = np.linspace(-kMax,kMax,num=50)
-        blg_disp = self.BLG.Dispersion(ks,u,1)/q
-        fig = plt.figure(figsize=(8,4))
-
-        ax2 = fig.add_subplot(122)
-        ax1 = fig.add_subplot(121,sharey=ax2)
+        fig, (ax1,ax2,ax3,ax4) = plt.subplots( ncols=4,nrows=1,
+                                               figsize=(9,7),
+                                               sharey='all',
+                                               gridspec_kw={'width_ratios':[1,2,2,1]})
 
         for axis in fig.axes:
             axis.axis('off')
 
-        ax2.plot(ks,blg_disp-vplus,color='k')
-        ax2.plot(ks,-blg_disp-vplus,color='k')
-        ax2.set_ylim((-0.12,0.12))
+        ### Generate static dIdV at the chosen VB ###
+
+        I = np.empty_like(VT)
+        for i, vt in enumerate(VT):
+            vp, vm = self.v_eq(vt,VB)
+            I[i] = self.tunnelcurrent(vp,vm,vt,self.T)
+        dIdV = np.gradient(I)
+        np.save('dIdV_debug.npy',dIdV)
 
 
-        ax2.fill_between(ks,-blg_disp[0]-vplus,-blg_disp-vplus,color='skyblue')
+        # Set the static dIdV plot
+        dIdV = np.load('dIdV_debug.npy')
+        dIdV_ax, = ax1.plot(-dIdV, VT)
+        ax1.set_ylim((VT[0],VT[-1]))
 
-        if 0 < np.max(-blg_disp-vplus):
-            ax2.fill_between(ks,0,np.max(-blg_disp-vplus),color='w')
-        elif 0 > np.min(blg_disp-vplus):
-            ax2.fill_between(ks,blg_disp-vplus,np.zeros_like(ks),
-                            where= 0 > blg_disp-vplus ,color='skyblue')
+        # Choose domain in k-space
+        kMax = self.BLG.kFermi(1*10**17, -2*q*0.1,1)
+        k = np.linspace(-kMax,kMax)
 
-        ax1.fill_between(ks, np.min(-blg_disp-vplus),-VT,color='skyblue')
+        vplus, vminus = self.v_eq(VT[0],VB)
+        eF, u = -q*vplus, -2*q*vminus
 
-        # Draw line for tip
-        xyA = (ks[0],-VT)
-        xyB = (kF,-VT)
-        con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
-                                axesA=ax1,axesB=ax2,color='k')
-        ax1.add_artist(con)
+        blg_disp = self.BLG.Dispersion(k,u,1)/q
+        con = blg_disp+vplus
+        val = -blg_disp+vplus
 
-        # Draw line for sample fermi level
-        xyA = (ks[-1],0)
-        xyB = (kF, 0)
-        con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
-                                axesA=ax1,axesB=ax2,color='k')
-        ax1.add_artist(con)
+        dos = self.BLG.DOS(q*VT + eF,u)
+        fd  = self.fermidirac(q*VT,VT[0])
 
-        # Draw lines at extrema
-        extrema = [-u/(2*q),u/(2*q),self.BLG.emin(u)/q,-self.BLG.emin(u)/q]
+        VT_ax, = ax2.plot(k, VT[0]*np.ones_like(k))
 
-        for ext in extrema:
-            ax2.plot(ks,ext*np.ones_like(ks),color='gray')
+        # Plot dispersion relation
+        con_ax, = ax3.plot(k, con, color='k') # conduction band
+        val_ax, = ax3.plot(k, val, color='k') # valence band
+        fermi,  = ax3.plot(k, np.zeros_like(k),color='k')
+
+        dos_ax, = ax4.plot(dos/np.mean(dos), VT)
+        fd_ax, = ax4.plot(fd,VT)
+
+        def animate(vt):
+            # Get equilibrium voltages
+            vplus, vminus = self.v_eq(vt,VB)
+            eF, u = -q*vplus, -2*q*vminus
+
+            blg_disp = self.BLG.Dispersion(k,u,1)/q
+            con = blg_disp+vplus
+            val = -blg_disp+vplus
+
+            dos = self.BLG.DOS(q*VT + eF,u)
+            fd = self.fermidirac(q*VT,vt)
+
+            VT_ax.set_ydata(vt*np.ones_like(k))
+            ax2.fill_between(k,VT[0],vt,color='skyblue')
+            con_ax.set_ydata(con)
+            val_ax.set_ydata(val)
+
+            dos_ax.set_xdata(dos/np.mean(dos))
+            fd_ax.set_xdata(fd)
+
+            return VT_ax, con_ax, val_ax, dos_ax, fd_ax,
 
 
-        # for ext in extrema:
-        #     xyA = (ks[-1],ext-vplus)
-        #     xyB = (kF,ext-vplus)
-        #     con = ConnectionPatch(xyA=xyA,xyB=xyB, coordsA="data", coordsB="data",
-        #                         axesA=ax1,axesB=ax2,color='gray')
-        #     ax1.add_artist(con)
+        # Init only required for blitting to give a clean slate.
+        def init():
+            #dIdV.set_xdata(np.ma.array(np.sin(k), mask=True))
+            VT_ax.set_ydata(np.ma.array(-VT[0]*np.ones_like(k), mask=True))
+            con_ax.set_ydata(np.ma.array(con, mask=True))
+            val_ax.set_ydata(np.ma.array(val, mask=True))
+            dos_ax.set_xdata(np.ma.array(dos/np.mean(dos), mask=True))
+            fd_ax.set_xdata(np.ma.array(fd,mask=True))
+            return VT_ax, con_ax, val_ax, dos_ax, fd_ax,
 
-
-        return fig
+        ani = animation.FuncAnimation(fig, animate, VT, init_func=init,
+                                      interval=200, blit=True)
+        plt.show()
+        

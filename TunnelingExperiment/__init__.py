@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from matplotlib.patches import ConnectionPatch
+import matplotlib.animation as animation
+#from matplotlib.patches import ConnectionPatch
 from scipy import integrate, optimize
 from StatisticalDistributions import Temperature
 from UniversalConstants import *
