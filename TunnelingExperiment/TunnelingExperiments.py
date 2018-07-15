@@ -38,16 +38,17 @@ class BLGinSTM:
 
         self.BLG = Graphene.Bilayer()
 
-
-    def planeplus(self,vplus, vminus,VGplus,VGminus):
-        return (self.C1+self.C2)*(vplus - VGplus) + (self.C1-self.C2)*(vminus - VGminus)
-
-    def planeminus(self,vplus,vminus,VGplus,VGminus):
-        return (self.C1+self.C2)*(vminus - VGminus) + (self.C1 - self.C2)*(vplus - VGplus) - 4*self.BLG.C*vminus
-
     def vplus_n0(self,VT,VB):
         """
         Potential of the BLG layer when no charge has accumulated
+
+        Parameters
+        ----------
+
+        VT:     scalar or array-like, tip voltage
+
+        VB:     scalar or array-like, gate voltage
+
         """
         num = self.e1*self.d2*VT + self.e2*self.d1*VB
         den = self.d1*self.e2 + self.d2*self.e1
@@ -56,6 +57,13 @@ class BLGinSTM:
     def vminus_n0(self,VT,VB):
         """
         Potential difference between the layers when no charge has accumulated.
+
+        Parameters
+        ----------
+
+        VT:     scalar or array-like; tip voltage
+
+        VB:     scalar or array-like; backgate voltage
         """
         num = self.BLG.d * (self.e1 + self.e2)
         den = 4*(self.e2*self.d1 + self.e1*self.d2)
@@ -64,7 +72,15 @@ class BLGinSTM:
     def n_exists(self,VT,VB):
         """
         Boolean function that returns whether or not charge has accumulated
+
+        Parameters
+        ---------
+
+        VT:     scalar or array-like; tip voltage
+
+        VB:     scalar or array-like; backgate voltage
         """
+
         vplus = self.vplus_n0(VT,VB)
 
         u = -2*q*self.vminus_n0(VT,VB)
@@ -73,7 +89,20 @@ class BLGinSTM:
         return abs(vplus) >= abs(minimum)
 
     def nElectron(self,vplus,VT,VB):
-        '''Returns electron density (m^-2) as a function of electrode-sample potential differences'''
+        '''
+        Returns electron density (m^-2) as a function of
+        electrode-sample potential differences.
+
+        Parameters
+        ----------
+
+        vplus:      scalar or array-like; potential of the BLG
+
+        VT:         scalar or array-like; tip voltage
+
+        VB:         scalar or array-like; backgate voltage
+
+        '''
         s1 = (VT-vplus) * self.C1
         s2 = (VB-vplus) * self.C2
         
@@ -82,7 +111,6 @@ class BLGinSTM:
     def vminus_n1(self,vplus,VT,VB):
         return (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
 
-    # CHECKED
     def vplus_root(self,vplus,VT,VB):
         """
         Self-consistency equation for the fermi level
@@ -444,3 +472,8 @@ class BLGinSTM:
                                       interval=200, blit=True)
         plt.show()
         
+    def planeplus(self,vplus, vminus,VGplus,VGminus):
+        return (self.C1+self.C2)*(vplus - VGplus) + (self.C1-self.C2)*(vminus - VGminus)
+
+    def planeminus(self,vplus,vminus,VGplus,VGminus):
+        return (self.C1+self.C2)*(vminus - VGminus) + (self.C1 - self.C2)*(vplus - VGplus) - 4*self.BLG.C*vminus
