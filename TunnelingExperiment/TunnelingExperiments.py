@@ -23,9 +23,12 @@ class BLGinSTM:
     material:   A material chosen from the Materials package. So far, only bilayer
                 graphene is available.
 
+    screening:  Boolean; "False" to neglect screening between BLG layers and "True"
+                to include the effects. Calculations take much longer if "True".
+
     """
 
-    def __init__(self, d1, d2, e1, e2, T, Wtip):
+    def __init__(self, d1, d2, e1, e2, T, Wtip, screening=False):
         self.d1 = d1 * 10**-9
         self.d2 = d2 * 10**-9
         self.e1 = e1 * e0
@@ -37,6 +40,8 @@ class BLGinSTM:
         self.C2 = self.e2 / self.d2
 
         self.BLG = Graphene.Bilayer()
+
+        self.screening = screening
 
     def vplus_n0(self,VT,VB):
         """
@@ -109,6 +114,9 @@ class BLGinSTM:
         return (s1 + s2) / q
 
     def vminus_n1(self,vplus,VT,VB):
+        """
+        The voltage difference when charge has accumulated
+        """
         return (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
 
     def vplus_root(self,vplus,VT,VB):
@@ -124,7 +132,6 @@ class BLGinSTM:
 
         return term1 + term2 + term3
 
-    # CHECKED
     def vplus_n1(self,VT,VB):
         """
         Returns the Fermi level when charge has accumulated.
@@ -141,7 +148,6 @@ class BLGinSTM:
 
         return optimize.brentq(f,a,b)
 
-    # CHECKED
     def v_eq(self,VT,VB):
         """
         Returns the Fermi Level first checking for charge. Uses the appropriate vplus formula.
@@ -177,8 +183,6 @@ class BLGinSTM:
         plt.ylabel('Voltages')
         plt.legend()
         plt.show()
-
-
 
     def generate_vplus_vminus(self,VT,VB,method):
         '''Finds equilibrium values of V+ and V- for a grid of
@@ -291,7 +295,6 @@ class BLGinSTM:
 
             print('100 % Finished')
             return (vplus0, vminus0)
-
 
     def fermidirac(self, x, vt):
         return Temperature.FermiDirac(x-q*vt,0) - Temperature.FermiDirac(x,0)
