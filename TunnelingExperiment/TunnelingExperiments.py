@@ -152,18 +152,26 @@ class BLGinSTM:
 
 
 
-    def generate_vplus_vminus(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
+    def generate_vplus_vminus(self,VT,VB,method):
         '''Finds equilibrium values of V+ and V- for a grid of
         tip voltages VT and gate voltages VG.
-        Broadcasts in batches of 10.'''
+
+        Parameters
+        ----------
+        VT:     array-like, voltages over which to sweep the tip.
+
+        VB:     array-like, voltages over which to sweep the backgate.
+        
+        method: Method used to compute equilibrium voltages. Only 'DasSarma' works.
+        '''
 
         if method == 'DasSarma':
-            num_vts = int(100 * num_vts_100) # number of points for VT
-            num_vbs = int(100 * num_vbs_100) # number of points for VB
 
-            VT = np.linspace(VTrange[0],VTrange[1],num=num_vts).reshape((num_vts,1))
-            VB = np.linspace(VBrange[0],VBrange[1],num=num_vbs).reshape((1,num_vbs))
+            num_vts = np.shape(VT)[0]
+            num_vbs = np.shape(VB)[0]
 
+            VT = VT.reshape((num_vts,1))
+            VB = VB.reshape((1,num_vbs))
 
             vp = np.empty(np.shape(VT*VB))
             vm = np.empty_like(vp)
@@ -182,6 +190,9 @@ class BLGinSTM:
         if method == 'YoungLevitov':
             # Load values of vplus and vminus to search over
 
+            print('YoungLevitov method is not supported')
+            return
+            
             print('Loading Carrier Densities')
             vplus = self.BLG.get_vplus(self.T)
             vplus = vplus.reshape(1,len(vplus),1,1).astype('float32')
