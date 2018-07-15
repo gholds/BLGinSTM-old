@@ -192,7 +192,7 @@ class BLGinSTM:
 
             print('YoungLevitov method is not supported')
             return
-            
+
             print('Loading Carrier Densities')
             vplus = self.BLG.get_vplus(self.T)
             vplus = vplus.reshape(1,len(vplus),1,1).astype('float32')
@@ -297,16 +297,25 @@ class BLGinSTM:
 
         return tc.sum()
 
-    def generate_tunnelcurrent(self,VTrange,num_vts_100,VBrange,num_vbs_100,method):
-        '''Generates the tunnel current over range of VTrange, VBrange 
-        (lists of length 2 [min,max]. Number of point * 100.'''
+    def generate_tunnelcurrent(self,VT,VB,method='DasSarma'):
+        '''
+        Computed tunnel current over range VT by VB.
 
-        # First get equilibrium values of voltages
-        vplus0, vminus0 = self.generate_vplus_vminus(VTrange,num_vts_100,VBrange,num_vbs_100,method)
+        Parameters
+        ----------
+        VT:     array-like, tip voltages
 
-        # Then generate an array of the tip voltages
-        VT = np.linspace(VTrange[0],VTrange[1],num=int(100*num_vts_100))
-        VB = np.linspace(VBrange[0],VBrange[1],num=int(100*num_vbs_100))
+        VB:     array-like, backgate voltages
+
+        method: Method used to compute the equilibrium voltages.
+                Only 'DasSarma' is valid
+
+        
+        '''
+
+        # Get equilibrium values of voltages
+        vplus0, vminus0 = self.generate_vplus_vminus(VT,VB,method)
+
 
         tc = np.empty(np.shape(vplus0))
 
