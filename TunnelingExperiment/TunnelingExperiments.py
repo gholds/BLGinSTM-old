@@ -123,7 +123,7 @@ class BLGinSTM:
         """
         nplus = self.nElectron(vplus, VT, VB)
         vm_unscreened = (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
-        return vm_unscreened
+        return self.screen_func(nplus,vm_unscreened)
 
     def vplus_root(self,vplus,VT,VB):
         """

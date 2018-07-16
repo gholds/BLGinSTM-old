@@ -308,6 +308,7 @@ class Bilayer(BaseGraphene):
         """
         The screened value of vminus given the total charge nplus
         """
+        vminus = np.atleast_1d(vminus)
         a = -1
         b = 1
 
@@ -323,7 +324,7 @@ class Bilayer(BaseGraphene):
             vm1 = optimize.brentq(f1,a,b)
             vminus_screened.append(vm1)
 
-        return np.array(vminus_screened)
+        return np.array(vminus_screened).squeeze()
 
     def screened_vminus2(self,nplus,vminus):
         """
