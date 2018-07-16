@@ -318,7 +318,7 @@ class Bilayer(BaseGraphene):
             vp = self.eFermi(nplus, -2*q*vm) / q
 
             def f1(vm1):
-                return (vm1 - vm) + (q / (4*self.C))*self.nminusT0(vp,vm1)
+                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp,vm1,0)
 
             vm1 = optimize.brentq(f1,a,b)
             vminus_screened.append(vm1)
