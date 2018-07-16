@@ -283,25 +283,96 @@ class Bilayer(BaseGraphene):
             energy_diff = (np.abs(eF)>np.abs(u/2)) * (eF**2 - (u/2)**2)
             return (nu0/q) * np.sign(eF) * np.sqrt(energy_diff)
 
-    def nminusT0(self,vplus,vminus,approx='LowEnergy'):
+    def nminusT0(self,vplus,vminus):
 
-        if approx == 'LowEnergy':
-            meff = ( self.g1 / (2 * (self.vF)**2) )
-            nu0 = 2 * meff * q  / (pi * hbar**2)
+        meff = ( self.g1 / (2 * (self.vF)**2) )
+        nu0 = 2 * meff * q  / (pi * hbar**2)
 
-            prop = nu0 * vminus
-            
-            # Find cutoff energy. Approximate it as the vminus=0 case
-            Lambda = self.Dispersion( 1 / (np.sqrt(3) * self.a), -2*q*vminus, 1 ) / q
-            
-            # Compute the denominator of the log
-            metal = abs(vplus) >= abs(vminus)
-            den = (metal) * np.abs(vplus) + np.sqrt( metal * vplus**2 + (-1)**metal * vminus**2 ) 
-            
-            return prop * np.log(2 * Lambda / den)
+        prop = nu0 * vminus
+        
+        # Find cutoff energy. Approximate it as the vminus=0 case
+        Lambda = self.Dispersion( 1 / (np.sqrt(3) * self.a), -2*q*vminus, 1 ) / q
+        
+        # Compute the denominator of the log
+        metal = abs(vplus) >= abs(vminus)
+        den = (metal) * np.abs(vplus) + np.sqrt( metal * vplus**2 + (-1)**metal * vminus**2 ) 
+        
+        return prop * np.log(2 * Lambda / den)
 
-        else:
-            print('Invalid Approximation')
+
+    #################
+    ### Screening ###
+    #################
+
+    def screened_vminus(self,nplus,vminus):
+        """
+        The screened value of vminus given the total charge nplus
+        """
+        a = -1
+        b = 1
+
+        vminus_screened = []
+
+        for vm in vminus:
+
+            vp = self.eFermi(nplus, -2*q*vm) / q
+
+            def f1(vm1):
+                return (vm1 - vm) + (q / (4*self.C))*self.nminusT0(vp,vm1)
+
+            vm1 = optimize.brentq(f1,a,b)
+            vminus_screened.append(vm1)
+
+        return np.array(vminus_screened)
+
+    def screened_vminus2(self,nplus,vminus):
+        """
+        The screened value of vminus given the total charge nplus
+        """
+        a, b = -1, 1
+
+        vminus_screened = []
+
+        for vm in vminus:
+            vm0 = vm
+            vp0 = self.eFermi(nplus, -2*q*vm) / q
+
+            def f1(vm1):
+                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+
+            vm1 = optimize.brentq(f1,a,b)
+            vp1 = self.eFermi(nplus, -2*q*vm1) / q
+
+            while (vm1-vm0)**2 + (vp1-vp0)**2 > 0.0001:
+                vp0, vm0 = vp1, vm1
+
+                def f1(vm1):
+                    return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
+
+                vm1 = optimize.brentq(f1,a,b)
+                vp1 = self.eFermi(nplus, -2*q*vm1) / q
+            
+            vminus_screened.append(vm1)
+
+        return np.array(vminus_screened)
+
+    def screened_newton(self,vplus,vminus):
+        n = self.nplus(vplus,vminus,0)
+
+        def f1(v):
+            return (v[1] - vminus) + (q / (4*self.C))*self.nminusT0(v[0],v[1])
+
+        def f2(v):
+            return n - self.nplus(v[0],v[1],0)
+
+        v = Newton.Newton2D(f1,f2,np.array([vplus,vminus]))
+
+        return v
+
+
+    ##################
+    ### OLD METHOD ###
+    ##################
 
     def nplus(self,vplus,vminus, T, approx='Common',points = 10000):
         '''
@@ -461,76 +532,3 @@ class Bilayer(BaseGraphene):
         nminus_surface = np.concatenate((-nminus_surface[:0:-1,:],nminus_surface))
         nminus_surface = np.concatenate((nminus_surface[:,:0:-1],nminus_surface),axis = 1)
         return nminus_surface
-
-    #################
-    ### Screening ###
-    #################
-
-    def screened_vminus(self,nplus,vminus):
-        """
-        The screened value of vminus given the total charge nplus
-        """
-        a = -1
-        b = 1
-
-        vminus_screened = []
-
-        for vm in vminus:
-
-            vp = self.eFermi(nplus, -2*q*vm) / q
-
-            def f1(vm1):
-                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp,vm1,0)
-
-            vm1 = optimize.brentq(f1,a,b)
-
-
-
-            vminus_screened.append(vm1)
-
-        return np.array(vminus_screened)
-
-    def screened_vminus2(self,nplus,vminus):
-        """
-        The screened value of vminus given the total charge nplus
-        """
-        a, b = -1, 1
-
-        vminus_screened = []
-
-        for vm in vminus:
-            vm0 = vm
-            vp0 = self.eFermi(nplus, -2*q*vm) / q
-
-            def f1(vm1):
-                return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
-
-            vm1 = optimize.brentq(f1,a,b)
-            vp1 = self.eFermi(nplus, -2*q*vm1) / q
-
-            while (vm1-vm0)**2 + (vp1-vp0)**2 > 0.0001:
-                vp0, vm0 = vp1, vm1
-
-                def f1(vm1):
-                    return (vm1 - vm) + (q / (4*self.C))*self.nminus(vp0,vm1,0)
-
-                vm1 = optimize.brentq(f1,a,b)
-                vp1 = self.eFermi(nplus, -2*q*vm1) / q
-            
-            vminus_screened.append(vm1)
-
-        return np.array(vminus_screened)
-
-    def screened_newton(self,vplus,vminus):
-        n = self.nplus(vplus,vminus,0)
-
-        def f1(v):
-            return (v[1] - vminus) + (q / (4*self.C))*self.nminusT0(v[0],v[1])
-
-        def f2(v):
-            return n - self.nplus(v[0],v[1],0)
-
-        v = Newton.Newton2D(f1,f2,np.array([vplus,vminus]))
-
-        return v
-
