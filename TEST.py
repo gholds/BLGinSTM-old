@@ -1,17 +1,15 @@
-from TunnelingExperiment import TunnelingExperiments
+from Materials import Graphene
 import numpy as np
+import matplotlib.pyplot as plt
 
-d1, d2 = 1, 305
-e1, e2 = 1, 3.9
-T = 0
-W = 5
+BLG = Graphene.Bilayer()
 
-experiment = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,W)
+n = 10**16
 
-VT = np.linspace(-1,1, num=5)
-VB = np.linspace(-45,45,num=5)
+vminus = np.linspace(-0.1,0.1,num=100)
 
+vminus_screened = BLG.screened_vminus(n,vminus)
 
-tc = experiment.generate_tunnelcurrent(VT,VB,method='DasSarma')
+plt.plot(vminus, vminus_screened)
 
-print(experiment.I)
+plt.show()
