@@ -1,21 +1,17 @@
 from Materials import Graphene
+from TunnelingExperiment import TunnelingExperiments
 import numpy as np
 import matplotlib.pyplot as plt
 
-BLG = Graphene.Bilayer()
+d1, d2 = 1, 305
+e1, e2 = 1, 3.9
+T = 0
+W = 5
 
-n1 = 10**16
-n2 = 5 * n1
-n3 = 10* n1
+exp = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,W)
 
-vminus = np.linspace(-0.1,0.1,num=100)
+vplus = 0.01
+VT = 1
+VB = 30
 
-vms1 = BLG.screened_vminus(n1,vminus)
-vms2 = BLG.screened_vminus(n2,vminus)
-vms3 = BLG.screened_vminus(n3,vminus)
-
-plt.plot(vminus, vms1)
-plt.plot(vminus, vms2)
-plt.plot(vminus, vms3)
-
-plt.show()
+print(exp.vminus_n1(vplus,VT,VB))

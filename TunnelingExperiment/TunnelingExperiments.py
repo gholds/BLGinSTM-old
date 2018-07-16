@@ -119,9 +119,11 @@ class BLGinSTM:
 
     def vminus_n1(self,vplus,VT,VB):
         """
-        The voltage difference when charge has accumulated
+        The voltage difference when charge has accumulated.
         """
-        return (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
+        nplus = self.nElectron(vplus, VT, VB)
+        vm_unscreened = (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
+        return vm_unscreened
 
     def vplus_root(self,vplus,VT,VB):
         """
