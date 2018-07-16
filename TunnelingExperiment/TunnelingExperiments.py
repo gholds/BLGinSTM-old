@@ -41,7 +41,11 @@ class BLGinSTM:
 
         self.BLG = Graphene.Bilayer()
 
-        self.screening = screening
+        if screening == False:
+            self.screen_func = lambda x, y: y
+
+        if screening == True:
+            self.screen_func = self.BLG.screened_vminus
 
     def vplus_n0(self,VT,VB):
         """
