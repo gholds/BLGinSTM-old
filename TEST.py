@@ -11,10 +11,16 @@ W = 5
 
 
 BLG = Graphene.Bilayer()
-exp = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,W,screening=False)
+exp1 = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,W,screening=False)
+exp2 = TunnelingExperiments.BLGinSTM(d1,d2,e1,e2,T,W,screening=True)
 
-vplus = 0.01
-VT = 1
-VB = 30
+vplus = 0.1
+vminus = 0.01
+VT = np.array([-0.05,0.05])
+VB = np.array([5,10])
 
-print(exp.vminus_n1(vplus,VT,VB))
+exp1.generate_tunnelcurrent(VT,VB)
+exp2.generate_tunnelcurrent(VT,VB)
+
+print(exp1.I)
+print(exp2.I)
