@@ -7,9 +7,9 @@ Wtip = 5
 
 experiment = STM.BLGinSTM(d1,d2,e1,e2,T,Wtip)
 
-VT = np.linspace(-0.2,0.2, num=40)
+VT = np.linspace(-0.2,0.2, num=10)
 
-VB = np.linspace(-40,40,num=40)
+VB = np.linspace(-40,40,num=10)
 
 experiment.generate_tunnelcurrent(VT,VB)
 
