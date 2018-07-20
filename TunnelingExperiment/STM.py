@@ -601,6 +601,8 @@ class BLGinSTM:
 
         self.BLG = Bilayer()
 
+        self.I = None
+
         if screening == False:
             self.screen_func = lambda x, y: y
 
@@ -894,7 +896,7 @@ class BLGinSTM:
 
         return tc.sum()
 
-    def generate_tunnelcurrent(self,VT,VB,method='DasSarma'):
+    def generate_tunnelcurrent(self,VT,VB,method='DasSarma',return_current=False):
         '''
         Computed tunnel current over range VT by VB.
 
@@ -907,6 +909,8 @@ class BLGinSTM:
         method: Method used to compute the equilibrium voltages.
                 Only 'DasSarma' is valid
 
+        return_current: Boolean, whether to return the current or simply
+                        save to the object.
         
         '''
 
@@ -922,9 +926,17 @@ class BLGinSTM:
             for j in range(np.shape(tc)[1]):
                 tc[i,j] = self.tunnelcurrent(vplus0[i,j],vminus0[i,j],VT[i],0)
 
+
+        if return_current==True:
+            return tc
+
+        # if return_current is not chosen, then voltages and currents
+        # will be saved.
         self.VT = VT
         self.VB = VB
         self.I = tc
+
+
 
     def plot_dIdV(self,show=True,save=False):
         dIdV = np.gradient(self.I,axis=0) # dI/dV
@@ -946,6 +958,39 @@ class BLGinSTM:
             save_dir = os.path.join( os.path.dirname(__file__),
                                     'dIdV_Plots')
             fig.savefig(os.path.join(save_dir,'tip_height_{}ang.png'.format(round(self.d1*10**10))))
+
+    def plot_dIdV_waterfall(self,VT,VB):
+        """
+        Plots a waterfall plot of dIdV spectrum
+
+        Parameters
+        ----------
+        
+        VT:     array-like, array of tip voltages to plot
+
+        VB:     array-like, array of gate voltages to plot
+        """
+
+        fig, ax = plt.subplots(figsize=(4,8))
+
+        fig.suptitle('dI/dV')
+
+        current = self.generate_tunnelcurrent(VT,VB,return_current=True)
+
+        dIdV = np.gradient(current, axis=0)
+
+        num_points = np.shape(dIdV)[0]
+        num_plots = np.shape(dIdV)[1]
+
+        offsets = np.linspace(0,num_plots-1,num=num_plots).reshape(1,num_plots)*3*10**16
+
+        ax.plot(VT,dIdV+offsets,color='b')
+
+        ax.text(VT[-int(num_points/4)],(dIdV+offsets)[0,-1],"$V_B={}$ V".format(VB[-1]))
+        ax.text(VT[-int(num_points/4)],(dIdV+offsets)[0,0],"$V_B={}$ V".format(VB[0]))
+
+
+        plt.show()
 
     def plot_schematic(self,VT, VB):
         '''

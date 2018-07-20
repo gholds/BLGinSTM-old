@@ -599,10 +599,14 @@ class BLGinSTM:
 
         self.BLG = Bilayer()
 
+        self.I = 'Hello'
+
         if screening == False:
+            # No screening
             self.screen_func = lambda x, y: y
 
         if screening == True:
+            # Include screening
             self.screen_func = self.BLG.screened_vminus
 
     def vplus_n0(self,VT,VB):
@@ -939,11 +943,20 @@ class BLGinSTM:
         if show == True:
             plt.show()
 
+        # Recommended to format the save file so you can reload
         if save == True:
             import os
             save_dir = os.path.join( os.path.dirname(__file__),
                                     'dIdV_Plots')
             fig.savefig(os.path.join(save_dir,'tip_height_{}ang.png'.format(round(self.d1*10**10))))
+
+
+    def plot_dIdV_waterfall(self,)
+        """
+        Produces a waterfall dIdV plot.
+        """
+        pass
+
 
     def plot_schematic(self,VT, VB):
         '''
