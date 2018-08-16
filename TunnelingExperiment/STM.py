@@ -393,7 +393,7 @@ class Bilayer(BaseGraphene):
         KE = self.Dispersion(ks, -2*q*vminus,1,approx)
 
         # Evaluate Fermi-Dirac
-        FD = (Temperature.FermiDirac(KE-q*vplus,T)-Temperature.FermiDirac(KE+q*vplus,T))
+        FD = (FermiDirac(KE-q*vplus,T)-FermiDirac(KE+q*vplus,T))
 
         # Define integrand
         integrand = ( 2 / np.pi ) * ks * FD
