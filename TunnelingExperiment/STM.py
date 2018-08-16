@@ -865,7 +865,7 @@ class BLGinSTM:
             return (vplus0, vminus0)
 
     def fermidirac(self, x, vt):
-        return Temperature.FermiDirac(x-q*vt,0) - Temperature.FermiDirac(x,0)
+        return FermiDirac(x-q*vt,0) - FermiDirac(x,0)
 
     def tunnelcurrent(self,vplus,vminus,VT,T):
         '''Returns tunnel current.'''
