@@ -904,12 +904,12 @@ class BLGinSTM:
         C0 = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
 
         # Calculate the parameters we need
-        phibar = self.Wtip - (q/2)*VT
+        phibar = self.Wtip - (q/2)*VT # CHANGE TO SELF.PHIBAR
 
-        kappa0 = np.sqrt(2*m*phibar)/hbar
+        kappa0 = np.sqrt(2*m*phibar)/hbar # CHANGE TO SELF.PHIBAR
 
         fermidirac = lambda x : FermiDirac(x-q*VT,T) - FermiDirac(x,T)
-        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*phibar))
+        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*phibar)) # SELF.PHIBAR
 
         # Points which are divergences or discontinuities or the bounds
         # At one point the end points were changing the result, but no longer
