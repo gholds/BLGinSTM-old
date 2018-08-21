@@ -588,7 +588,7 @@ class BLGinSTM:
 
     """
     A Tunneling experiment containing information to calculate tunnel
-    current from BLG.
+    current from BLG. Is also capable of plotting the results.
 
     Parameters
     ----------
@@ -962,8 +962,6 @@ class BLGinSTM:
         self.VT = VT
         self.VB = VB
         self.I = tc
-
-
 
     def plot_dIdV(self,show=True,save=False):
         dIdV = np.gradient(self.I,axis=0) # dI/dV
