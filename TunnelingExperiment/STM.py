@@ -627,6 +627,7 @@ class BLGinSTM:
 
         self.phibar = (self.Wtip + self.BLG.W) / 2  # Average work function
         self.dW     = (self.Wtip - self.BLG.W)      # Difference between work functions
+        self.dWe    = self.dW / (-q)                # Potential diff due to work function diff
 
         self.I = None
 
@@ -648,7 +649,7 @@ class BLGinSTM:
         VB:     scalar or array-like, gate voltage
 
         """
-        num = self.e1*self.d2*VT + self.e2*self.d1*VB
+        num = self.e1*self.d2*(VT-self.dWe) + self.e2*self.d1*VB
         den = self.d1*self.e2 + self.d2*self.e1
         return num / den
 
@@ -665,7 +666,7 @@ class BLGinSTM:
         """
         num = self.BLG.d * (self.e1 + self.e2)
         den = 4*(self.e2*self.d1 + self.e1*self.d2)
-        return (num/den)*(VT-VB)
+        return (num/den)*(VT-VB-self.dWe)
 
     def n_exists(self,VT,VB):
         """
@@ -701,7 +702,7 @@ class BLGinSTM:
         VB:         scalar or array-like; backgate voltage
 
         '''
-        s1 = (VT-vplus) * self.C1
+        s1 = (VT-vplus-self.dWe) * self.C1
         s2 = (VB-vplus) * self.C2
         
         return (s1 + s2) / q
@@ -711,7 +712,7 @@ class BLGinSTM:
         The voltage difference when charge has accumulated.
         """
         nplus = self.nElectron(vplus, VT, VB)
-        vm_unscreened = (self.BLG.d / 4) * ( (VT-vplus)/self.d1 - (VB-vplus)/self.d2 )
+        vm_unscreened = (self.BLG.d / 4) * ( (VT-vplus-self.dWe)/self.d1 - (VB-vplus)/self.d2 )
         return self.screen_func(nplus,vm_unscreened)
 
     def vplus_root(self,vplus,VT,VB):
@@ -903,13 +904,10 @@ class BLGinSTM:
         # Estimate prefactor C0
         C0 = (4*pi*q / hbar) * 1 * self.BLG.Ac *1
 
-        # Calculate the parameters we need
-        phibar = self.Wtip - (q/2)*VT # CHANGE TO SELF.PHIBAR
-
-        kappa0 = np.sqrt(2*m*phibar)/hbar # CHANGE TO SELF.PHIBAR
+        kappa0 = np.sqrt(2*m*self.phibar)/hbar
 
         fermidirac = lambda x : FermiDirac(x-q*VT,T) - FermiDirac(x,T)
-        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*phibar)) # SELF.PHIBAR
+        integrand = lambda x : fermidirac(x) * self.BLG.DOS(eF+x,u) * np.exp((x)*kappa0*self.d1/(2*self.phibar))
 
         # Points which are divergences or discontinuities or the bounds
         # At one point the end points were changing the result, but no longer
