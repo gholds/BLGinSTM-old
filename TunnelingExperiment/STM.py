@@ -996,7 +996,7 @@ class BLGinSTM:
         VB:     array-like, array of gate voltages to plot
         """
 
-        fig, ax = plt.subplots(figsize=(4,8))
+        fig, ax = plt.subplots(figsize=(6,10))
 
         fig.suptitle('dI/dV')
 
