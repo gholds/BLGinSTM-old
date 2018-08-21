@@ -963,9 +963,25 @@ class BLGinSTM:
         self.VB = VB
         self.I = tc
 
-    def plot_dIdV(self,show=True,save=False):
+    def plot_dIdV(self,show=True,save=False,norm=False):
+        """
+        Plots a color map of dI/dV spectrum (VT vs VB).
+
+        Parameters
+        ----------
+        show:       Boolean; Select "True" to show the image. Select "False" (default)
+                    to simply generate it. Useful if you would just like to save the image.
+
+        save:       Boolean; Select "True" to save to (file location)
+
+        norm:       Boolean; Select "True" to normalize and plot (dI/dV)/(I/VT) spectrum.
+        """
+
         dIdV = np.gradient(self.I,axis=0) # dI/dV
-        #IV = self.I / self.VT[:,np.newaxis] # I/V
+
+        if norm == True:
+            IV = self.I / self.VT[:,np.newaxis] # I/V
+            dIdV = dIdV / IV
 
         fig, ax = plt.subplots(figsize=(7,6))
 
