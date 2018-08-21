@@ -1,7 +1,7 @@
 from . import * # Packages imported in __init__.py
 
 
-# Define some constants
+# Define some universal constants
 pi=np.pi
 
 #Energy
@@ -24,7 +24,9 @@ e0=8.85*(10**(-12)) # Permittivity of free space
 
 class BaseGraphene:
     """
-    Base class for all types of graphene.
+    Base class for all types of graphene. Includes constants common to all
+    types of graphene. Can be used to develop classes with
+    more layers.
     """
 
     __metaclass__ = ABCMeta
@@ -33,7 +35,7 @@ class BaseGraphene:
         self.a = 1.42 * (10**(-10)) # (m), Interatom spacing
         self.Ac = 3*np.sqrt(3)*(self.a**2) / 2 # (m^2), Area of unit cell of graphene
         self.g0 = 2.8*eVtoJ # (J), Interatom hopping potential
-        self.vF = 3*self.a*self.g0/(2*hbar)
+        self.vF = 3*self.a*self.g0/(2*hbar) # Fermi velocity
 
 
 class Bilayer(BaseGraphene):
@@ -570,13 +572,12 @@ def FermiDirac(en, T):
     Returns
     ----------
     FD:         array-like
-                Fermi-Dirac probability of state at energy en
+                Fermi-Dirac probability of occupation of state at energy en.
 
     """
 
-    kB = 1.38064852*10**-23 # J/K, could probably remove this definition by referring to the global UNIVERSAL CONSTANT
-
     # Using logaddexp reduces chance of underflow error
+    # Adds a tiny offset to temperature to avoid division by zero.
     FD = np.exp( -np.logaddexp(en/(kB*(T+0.000000000001)),0) )
 
     return FD
