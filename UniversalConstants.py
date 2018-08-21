@@ -1,3 +1,5 @@
+import numpy as np
+
 # Define some constants
 pi=np.pi
 
