@@ -36,6 +36,7 @@ class BaseGraphene:
         self.Ac = 3*np.sqrt(3)*(self.a**2) / 2 # (m^2), Area of unit cell of graphene
         self.g0 = 2.8*eVtoJ # (J), Interatom hopping potential
         self.vF = 3*self.a*self.g0/(2*hbar) # Fermi velocity
+        self.W = 4.6 * eVtoJ # Work function of graphene. See 10.1038/nphys1022
 
 
 class Bilayer(BaseGraphene):
@@ -592,21 +593,21 @@ class BLGinSTM:
     Parameters
     ----------
 
-    d1, d2  :   The top gate to sample and bottom gate to sample distances
-                respectively in nanometers. Converted to meters for calcs.
+    d1, d2  :   The top gate-sample and bottom gate-sample distances
+                respectively in nanometers. Converted to meters once initialized.
     
     e1, e2  :   The relative permittivities in the top gate-sample and
                 bottom gate-sample regions respectively. Multiplied by e0
-                for calculations.
+                once initialized.
 
-    T       :   Temperature (K)
+    T       :   Experiment Temperature in Kelvin
 
     Wtip    :   Work function of top gate in eV. Converted to J for calculations
 
     material:   A material chosen from the Materials package. So far, only bilayer
                 graphene is available.
 
-    screening:  Boolean; "False" to neglect screening between BLG layers and "True"
+    screening:  Boolean; "False" (default) to neglect screening between BLG layers and "True"
                 to include the effects. Calculations take much longer if "True".
 
     """
@@ -623,6 +624,9 @@ class BLGinSTM:
         self.C2 = self.e2 / self.d2
 
         self.BLG = Bilayer()
+
+        self.phibar = (self.Wtip + self.BLG.W) / 2  # Average work function
+        self.dW     = (self.Wtip - self.BLG.W)      # Difference between work functions
 
         self.I = None
 
